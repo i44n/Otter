@@ -1,0 +1,14 @@
+[
+  "Access Control",
+  "Authentication",
+  "Authorization",
+  "Injection",
+  "Session Management",
+  "Input Validation",
+  "Information Disclosure",
+  "Security Misconfiguration",
+  "Cryptography",
+  "Business Logic",
+  "Client-Side",
+  "Other"
+]

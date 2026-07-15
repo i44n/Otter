@@ -1,0 +1,29 @@
+# Secrets and local accounts
+.env
+*.key
+*.pem
+*.pfx
+*credentials*
+*secrets*
+*accounts*
+
+# Raw or sensitive evidence
+**/evidence/raw/
+*.pcap
+*.pcapng
+*.har
+*.burp
+*.nessus
+
+# Generated output
+exports/
+reports/final/
+
+# Temporary files
+.otter.lock
+*.tmp
+*.bak
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/

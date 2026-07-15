@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Web Pentest Project",
+  "type": "object",
+  "required": ["schemaVersion", "projectId", "name", "createdAt"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "projectId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]+$" },
+    "name": { "type": "string", "minLength": 1 },
+    "customerName": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date" },
+    "updatedAt": { "type": "string" }
+  },
+  "additionalProperties": true
+}
