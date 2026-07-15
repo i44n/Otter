@@ -1,0 +1,14 @@
+[
+  { "id": "AUTH-01", "category": "Authentication", "item": "로그인 실패 및 계정 잠금 정책을 확인한다." },
+  { "id": "AUTH-02", "category": "Authentication", "item": "비밀번호 재설정 절차와 토큰 무효화를 확인한다." },
+  { "id": "SESS-01", "category": "Session Management", "item": "로그인 전후 세션 ID 변경 여부를 확인한다." },
+  { "id": "SESS-02", "category": "Session Management", "item": "로그아웃 및 만료 후 세션 무효화를 확인한다." },
+  { "id": "AC-01", "category": "Access Control", "item": "수평·수직 권한 상승 가능성을 확인한다." },
+  { "id": "INJ-01", "category": "Injection", "item": "입력값의 SQL, 명령, 템플릿 및 경로 삽입 가능성을 확인한다." },
+  { "id": "XSS-01", "category": "Client-Side", "item": "반사형·저장형·DOM 기반 XSS 가능성을 확인한다." },
+  { "id": "FILE-01", "category": "Input Validation", "item": "파일 업로드 형식, 크기, 저장 위치 및 실행 가능성을 확인한다." },
+  { "id": "CONF-01", "category": "Security Misconfiguration", "item": "오류 메시지, 디버그 정보, 기본 설정 노출 여부를 확인한다." },
+  { "id": "DATA-01", "category": "Information Disclosure", "item": "민감정보가 응답, 로그, 캐시 또는 클라이언트 저장소에 노출되는지 확인한다." },
+  { "id": "LOGIC-01", "category": "Business Logic", "item": "업무 흐름 우회, 중복 처리 및 값 변조 가능성을 확인한다." },
+  { "id": "API-01", "category": "Access Control", "item": "API 객체 및 기능 수준 권한 검증을 확인한다." }
+]

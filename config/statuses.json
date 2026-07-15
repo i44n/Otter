@@ -1,0 +1,9 @@
+[
+  "Draft",
+  "Confirmed",
+  "FalsePositive",
+  "Accepted",
+  "Resolved",
+  "RetestFailed",
+  "RetestPassed"
+]

@@ -1,0 +1,60 @@
+[
+  {
+    "id": "WPK-ACCESS-001",
+    "version": 1,
+    "name": "객체 수준 권한 검증 미흡",
+    "englishName": "Insecure Direct Object Reference",
+    "title": "객체 수준 접근통제 미흡",
+    "category": "Access Control",
+    "defaultSeverity": "High",
+    "summary": "사용자가 요청한 객체에 대한 소유권 또는 접근 권한이 서버에서 검증되지 않습니다.",
+    "impact": "다른 사용자의 개인정보나 업무 데이터를 조회 또는 변경할 수 있습니다.",
+    "remediation": "모든 객체 조회 및 변경 요청에서 인증된 사용자의 접근 권한을 서버 측에서 검증해야 합니다.",
+    "remediationDetail": [
+      "클라이언트가 전달한 객체 식별자를 신뢰하지 않습니다.",
+      "추측하기 어려운 식별자는 권한 검사를 대체할 수 없습니다."
+    ],
+    "cwes": ["CWE-639", "CWE-862"],
+    "tags": ["IDOR", "BOLA", "Authorization"],
+    "references": ["OWASP Broken Access Control"],
+    "status": "Approved",
+    "reviewedBy": "Otter",
+    "reviewedAt": "2026-07-15"
+  },
+  {
+    "id": "WPK-INJECTION-001",
+    "version": 1,
+    "name": "SQL 삽입",
+    "englishName": "SQL Injection",
+    "title": "SQL Injection",
+    "category": "Injection",
+    "defaultSeverity": "Critical",
+    "summary": "사용자 입력값이 안전한 매개변수 처리 없이 SQL 질의문에 포함됩니다.",
+    "impact": "데이터베이스 정보 조회, 변경 또는 인증 우회가 가능할 수 있습니다.",
+    "remediation": "Prepared Statement를 사용하고 서버 측 입력값 검증과 최소 권한을 적용해야 합니다.",
+    "cwes": ["CWE-89"],
+    "tags": ["SQLi", "Database", "Injection"],
+    "references": ["OWASP Injection"],
+    "status": "Approved",
+    "reviewedBy": "Otter",
+    "reviewedAt": "2026-07-15"
+  },
+  {
+    "id": "WPK-AUTH-001",
+    "version": 1,
+    "name": "로그인 시도 제한 미흡",
+    "englishName": "Missing Login Rate Limiting",
+    "title": "로그인 시도 횟수 제한 미흡",
+    "category": "Authentication",
+    "defaultSeverity": "Medium",
+    "summary": "반복적인 로그인 실패에 지연, 제한 또는 추가 인증이 적용되지 않습니다.",
+    "impact": "공격자가 계정 비밀번호를 지속적으로 추측할 수 있습니다.",
+    "remediation": "계정 및 요청 출처를 고려한 시도 제한, 모니터링과 단계적 추가 인증을 적용해야 합니다.",
+    "cwes": ["CWE-307"],
+    "tags": ["Brute Force", "Rate Limit", "Authentication"],
+    "references": ["OWASP Authentication Failures"],
+    "status": "Approved",
+    "reviewedBy": "Otter",
+    "reviewedAt": "2026-07-15"
+  }
+]

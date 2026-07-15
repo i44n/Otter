@@ -1,0 +1,45 @@
+name: Feature request
+description: Propose a focused improvement to Otter
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What assessment workflow is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the desired behavior, not only a UI element.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Findings and procedures
+        - Evidence
+        - Retesting
+        - Credentials and encryption
+        - Vulnerability library
+        - Reports and PPT export
+        - Desktop UI
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: This proposal does not require storing real customer data in the issue.
+          required: true

@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Web Pentest Finding",
+  "type": "object",
+  "required": ["schemaVersion", "id", "targetId", "title", "severity", "status", "category", "presentation", "technicalDetails"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "id": { "type": "string", "pattern": "^WEB-[0-9]{2,3}-[0-9]{3}$" },
+    "targetId": { "type": "string", "pattern": "^WEB-[0-9]{2,3}$" },
+    "title": { "type": "string", "minLength": 1 },
+    "severity": { "enum": ["Critical", "High", "Medium", "Low", "Info"] },
+    "status": { "enum": ["Draft", "Confirmed", "FalsePositive", "Accepted", "Resolved", "RetestFailed", "RetestPassed"] },
+    "category": { "type": "string", "minLength": 1 },
+    "cwe": { "type": "string" },
+    "cvss": {
+      "type": "object",
+      "properties": {
+        "score": { "type": ["number", "null"], "minimum": 0, "maximum": 10 },
+        "vector": { "type": "string" }
+      }
+    },
+    "affected": {
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "method": { "type": "string" },
+        "parameter": { "type": "string" },
+        "role": { "type": "string" }
+      }
+    },
+    "discoveredAt": { "type": "string", "format": "date" },
+    "tester": { "type": "string" },
+    "presentation": {
+      "type": "object",
+      "required": ["include", "summary", "impact", "remediation", "evidence"],
+      "properties": {
+        "include": { "type": "boolean" },
+        "order": { "type": "integer", "minimum": 0 },
+        "slideType": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string" },
+        "impact": { "type": "string" },
+        "remediation": { "type": "string" },
+        "evidence": { "type": "array", "items": { "type": "string", "pattern": "^EVD-[0-9]{3}$" } }
+      }
+    },
+    "technicalDetails": {
+      "type": "object",
+      "required": ["rootCause", "request", "response", "analystNotes", "includeInReport", "includeInPpt"],
+      "properties": {
+        "rootCause": { "type": "string" },
+        "request": { "type": "string" },
+        "response": { "type": "string" },
+        "analystNotes": { "type": "string" },
+        "includeInReport": { "type": "boolean" },
+        "includeInPpt": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "template": {
+      "type": "object",
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "updatedAt": { "type": "string" }
+  },
+  "additionalProperties": true
+}
