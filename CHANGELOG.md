@@ -1,82 +1,57 @@
-# 변경 이력
+# Changelog
 
-## 1.7.0 - 2026-07-15
+This file records public Otter releases. Internal pre-public development numbers
+were consolidated into the first beta because no release tags were published.
 
-- 제품명을 `Otter`로 정하고 로고·창 제목·CLI·기본 저장 경로·배포 메타데이터 통일
-- 사이드바의 `Desktop · Qt` 표기를 제거하고 Otter 로고와 워드마크 적용
-- 공개 저장소용 README, MIT 라이선스, 기여·보안·행동강령·지원 문서 추가
-- GitHub Actions CI, Dependabot, 버그·기능 요청 양식과 PR 체크리스트 추가
-- 기술 상세를 `finding.json.technicalDetails` 구조화 데이터로 통합하고 수기 `finding.md` 원본 제거
-- Markdown 보고서와 PPT 번들에 `technical-details.md`, `finding-technical` 슬라이드 자동 생성
-- 취약점별 다중 재검증 이력을 `retests.json`으로 관리하고 결과에 따라 재검증 상태 자동 연동
-- 단계별 재검증 결과·관찰 내용·증적을 GUI에서 작성하고 보고서와 `finding-retest` 슬라이드에 반영
-- 취약점 상세 패널에 영향·조치·기술 상세·재현 절차·재검증 이력을 통합하고 목록 비율과 액션 재배치
-- 진단 대상 독립 페이지와 업무 단계별 사이드바 그룹을 추가하고 설정의 중복 대상 탭 제거
-- 테마 토글의 마우스 클릭 포커스 테두리를 제거하면서 Tab·Enter·Space 키보드 접근성 유지
+## Unreleased
 
-## 1.6.0 - 2026-07-15
+## 0.1.0b1 - 2026-07-16
 
-- `취약점당 최대 증적` 설정을 제거하고 모든 선택 증적을 2개 단위 연속 슬라이드로 누락 없이 Export
-- `finding.md`를 원인·요청·응답·분석 메모 중심의 기술 상세 문서로 재정의하고 Markdown/PPT 번들에 실제 합성
-- 취약점 편집기에 재현 절차와 기술 상세 탭을 통합하고 기존 상세 단축 버튼을 해당 탭으로 연결
-- 취약점 JSON, 절차 JSON, 기술 상세 Markdown 통합 저장과 실패 시 전체 롤백 및 신규 폴더 정리 추가
-- 라이트/다크 버튼을 키보드·접근성 지원 토글로 교체하고 선택 상태를 재실행 후에도 유지
+First public beta.
 
-## 1.5.0 - 2026-07-15
+### Assessment workflow
 
-- 계정 금고 payload v2와 `nextCredentialNumber`를 추가해 영구 삭제 후에도 계정 ID를 재사용하지 않음
-- 기존 v1 계정 금고를 잠금 해제 시 호환 마이그레이션하고 다음 변경 때 v2로 저장
-- 보관 계정 조회·사유 기록·복구·영구 삭제와 보관 중 비밀 값 표시·검증 차단 추가
-- 대상·취약점·증적 보관 항목의 확인형 영구 삭제와 실패 시 보관 항목 복원 추가
-- 통합 보관함에 계정 항목, 금고 잠금 안내, 복구와 ID 입력형 영구 삭제 UI 추가
+- Added structured targets, findings, affected requests, technical analysis,
+  reproduction procedures, and finding-level retest history.
+- Added searchable full-width finding and evidence tables with dedicated detail
+  views, keyboard return behavior, and linked-evidence navigation.
+- Added evidence assets with independent disclosure classification and explicit
+  links to finding, technical, procedure, and retest scopes.
+- Added archive, restore, and confirmed permanent deletion for project records.
 
-## 1.4.0 - 2026-07-15
+### Knowledge and reporting
 
-- 증적 수정 시 원본 파일을 안전하게 교체하고 실패 시 파일과 JSON을 함께 롤백
-- 다크 모드 체크박스 대비, 콤보박스 화살표, 작업 완료 후 상태바 복원 문제 수정
-- 취약점별 `procedure.json`과 단계별 EVD 증적 참조, 스키마·서비스·검증·마이그레이션 추가
-- 증적 보관·복원 시 절차 단계 참조도 트랜잭션으로 제거·복원
-- Markdown/PPT Export에 단계별 `finding-procedure` 슬라이드와 증적 중복 제거 추가
-- 재현 절차 단계 편집·정렬·증적 연결·새 증적 추가 GUI와 라이트/다크 스타일 추가
+- Added a versioned SQLite finding library with review metadata, atomic import and
+  export, in-place editing, archive, restore, deletion, and finding creation.
+- Added categorized validation results with English and Korean output.
+- Added Markdown and CSV reports plus a PPT-ready bundle containing `slides.json`,
+  SVG charts, structured finding content, and curated evidence.
+- Added report settings, output tracking, and background validation/export jobs.
 
-## 1.3.0 - 2026-07-15
+### Security
 
-- 진단 계정, 토큰, 쿠키, 인증서와 SSH 키를 관리하는 프로젝트별 암호화 금고 추가
-- 계정 메타데이터와 비밀 값 전체를 AES-256-GCM으로 보호하고 Argon2id 암호·오프라인 복구키 지원
-- 기존 폴더 프로젝트와 호환되는 `ProjectStorage` 경계 및 `.wpkproj` 암호화 프로젝트 추가
-- 암호·복구키 기반 잠금 해제, 즉시 재봉인, 변조·동시 수정 탐지와 원자적 저장 추가
-- 평문 프로젝트를 삭제하지 않는 암호화 복사, 암호 변경, 검증된 백업·복원 흐름 추가
-- 계정 및 접속정보 화면, 15분 유휴 자동 잠금, 30초 클립보드 삭제와 명시적 프로젝트 잠금 추가
-- KDF 자원 상한, 경로 탈출·심볼릭 링크·악성 ZIP 방어와 비밀 값 유출 방지 회귀 테스트 추가
-- Windows/macOS 배포용 `cryptography` 패키지 포함 설정과 보안 운영 문서 추가
+- Added AES-256-GCM encrypted `.wpkproj` containers with Argon2id password
+  derivation, recovery keys, password rotation, backups, tamper detection, and
+  atomic resealing.
+- Added a separately encrypted credential vault, idle locking, clipboard clearing,
+  and archive-aware credential handling.
+- Added path traversal, malicious archive, KDF resource, concurrent modification,
+  and partial-write defenses.
+- Added evidence secret checks and report-ready disclosure enforcement.
 
-## 1.2.0 - 2026-07-15
+### Desktop and localization
 
-- Tkinter 화면을 PySide6 기반의 현대적인 데스크톱 UI로 교체
-- 공통 디자인 토큰, 라이트/다크 테마, 사이드바와 토스트 추가
-- 대시보드, 취약점 검색·필터·상세·편집, Markdown 상세 문서 편집 추가
-- 증적 미리보기 카드와 드래그앤드롭, 취약점 지식DB 상세·버전·적용 화면 추가
-- 전체 템플릿 버전을 보존하는 취약점 지식DB JSON 가져오기·내보내기와 충돌 시 원자적 롤백 추가
-- 다크 모드 셀렉트 박스의 입력 영역, 화살표와 펼침 목록 대비 개선
-- 검증·보고서 백그라운드 작업, 보관함, 프로젝트·보고서·대상 설정 화면 추가
-- Qt 모델과 전체 화면 흐름에 대한 오프스크린 통합 테스트 및 Windows 렌더링 검증 추가
+- Added a PySide6 desktop interface with English as the default language, a Korean
+  language pack, light/dark themes, screen-aware sizing, and hierarchical navigation.
+- Added dashboards, editors, previews, filters, detail views, project protection,
+  and validation/report screens.
+- Added a fictional ACME sample and reproducible English README screenshots.
 
-## 1.1.0 - 2026-07-15
+### Engineering
 
-- CLI와 GUI가 공유하는 모델, 저장소와 서비스 계층 추가
-- 구조화된 필드 오류, 프로젝트 잠금과 다중 파일 롤백 추가
-- 대상, 취약점과 증적 보관·복구 추가
-- 프로젝트 스키마 검사, 마이그레이션 백업과 v0→v1 변환 추가
-- 버전형 SQLite 취약점 지식과 프로젝트 스냅샷 출처 추가
-- Tkinter 대시보드, 편집기, 증적, 보관함, 검증과 Export 추가
-- GUI 백그라운드 작업, 지식 DB 샘플과 통합 테스트 추가
-
-## 1.0.0
-
-- macOS 및 Windows 공용 Python CLI 구현
-- 프로젝트, 웹사이트, 취약점, 증적, 재검증 생성 기능
-- 정형 데이터 및 문서 검증 기능
-- CSV와 Markdown 현황 보고서 생성 기능
-- `slides.json`, SVG 차트, 선별 증적을 포함하는 PPT 자료 Export 기능
-- 실행 진입점을 `pentest.py` 하나로 단순화
-- 보고서와 점검 문서의 섹션 헤더를 영어로 통일
+- Unified GUI and CLI behavior behind `ProjectService` and transactional repository
+  boundaries.
+- Fixed the active project document contract at internal schema version 3 for the
+  beta; pre-beta migrations are intentionally unsupported.
+- Added cross-platform CI, offscreen GUI tests, localization audits, encrypted
+  storage tests, rollback tests, and end-to-end workflow coverage.

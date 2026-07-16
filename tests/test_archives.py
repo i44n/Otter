@@ -5,8 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from webpentestkit.core import add_target, init_project
-from webpentestkit.models import FindingInput, ProcedureStepInput
+from webpentestkit.models import FindingInput, ProcedureStepInput, RetestInput
 from webpentestkit.services import ProjectService
 
 
@@ -14,16 +13,15 @@ class ArchiveWorkflowTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        self.project = init_project(
-            str(self.root / "project"), "ARCHIVE-TEST", "Archive Test"
+        self.service = ProjectService.create_project(
+            self.root / "project", "ARCHIVE-TEST", "Archive Test"
         )
-        add_target(
-            str(self.project),
+        self.project = self.service.root
+        self.service.create_target(
             "WEB-01",
             "Portal",
             "https://portal.example.test",
         )
-        self.service = ProjectService.open(self.project)
         self.finding = self.service.create_finding(
             FindingInput(
                 target_id="WEB-01",
@@ -48,7 +46,8 @@ class ArchiveWorkflowTest(unittest.TestCase):
             source,
             "Report evidence",
             evidence_type="http-exchange",
-            include_in_report=True,
+            classification="report-ready",
+            use_in_finding=True,
         )
         self.service.save_procedure(
             self.finding.id,
@@ -61,6 +60,20 @@ class ArchiveWorkflowTest(unittest.TestCase):
                 )
             ],
         )
+        self.service.create_retest(
+            self.finding.id,
+            RetestInput(
+                tested_at="2026-07-15",
+                tester="Archive Tester",
+                result="Passed",
+                verification_details="The server rejects the request.",
+                evidence_ids=(evidence.id,),
+            ),
+        )
+        usage = self.service.get_evidence_usage(self.finding.id, evidence.id)
+        self.assertTrue(usage.finding_presentation)
+        self.assertEqual(usage.procedure_step_ids, ("STEP-001",))
+        self.assertEqual(usage.retest_ids, ("RT-001",))
         original = self.service.evidence_location(self.finding.id, evidence.id)
         archived = self.service.archive_evidence(
             self.finding.id, evidence.id, "No longer needed in current report"
@@ -68,8 +81,11 @@ class ArchiveWorkflowTest(unittest.TestCase):
         self.assertEqual(archived.entity_type, "evidence")
         self.assertFalse(original.exists())
         self.assertEqual(self.service.list_evidence(self.finding.id), [])
-        self.assertNotIn(
-            evidence.id, self.service.get_finding(self.finding.id).presentation.evidence
+        self.assertEqual(
+            self.service.get_retests(self.finding.id).items[0].evidence_ids, ()
+        )
+        self.assertFalse(
+            self.service.list_evidence_usages(self.finding.id).get(evidence.id)
         )
         self.assertEqual(self.service.list_archives()[0].reason, archived.reason)
         self.assertEqual(
@@ -80,12 +96,16 @@ class ArchiveWorkflowTest(unittest.TestCase):
         self.assertEqual(restored.entity_id, evidence.id)
         restored_evidence = self.service.get_evidence(self.finding.id, evidence.id)
         self.assertTrue(self.service.evidence_location(self.finding.id, evidence.id).is_file())
-        self.assertTrue(restored_evidence.include_in_report)
-        self.assertIn(
-            evidence.id, self.service.get_finding(self.finding.id).presentation.evidence
+        self.assertTrue(restored_evidence.is_report_ready)
+        self.assertTrue(
+            self.service.get_evidence_usage(self.finding.id, evidence.id).finding_presentation
         )
         self.assertEqual(
             self.service.get_procedure(self.finding.id).steps[0].evidence_ids,
+            (evidence.id,),
+        )
+        self.assertEqual(
+            self.service.get_retests(self.finding.id).items[0].evidence_ids,
             (evidence.id,),
         )
         self.assertEqual(self.service.list_archives(), [])
@@ -106,7 +126,7 @@ class ArchiveWorkflowTest(unittest.TestCase):
             self.finding.id,
             source,
             "Purge evidence",
-            include_in_report=False,
+            classification="internal",
         )
         archived = self.service.archive_evidence(self.finding.id, evidence.id, "Expired")
 

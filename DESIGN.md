@@ -4,7 +4,7 @@
 
 CLI와 PySide6 GUI는 동일한 `ProjectService`와 `KnowledgeService`를 사용합니다. 프로젝트 파일 접근은 `ProjectRepository`, 취약점 지식 DB 접근은 `KnowledgeRepository`가 담당하며 GUI에서 JSON 또는 SQLite를 직접 수정하지 않습니다.
 
-프로젝트 변경은 프로젝트 단위 잠금 안에서 수행됩니다. 취약점 편집은 `finding.json`과 `procedure.json`을 하나의 저장 단위로 취급하며 실패 시 이전 내용을 복구합니다. 재검증 저장은 `retests.json`과 상태가 바뀐 `finding.json`을 함께 반영합니다. 삭제가 필요한 업무는 `archive/` 보관과 복구로 처리합니다.
+프로젝트 변경은 프로젝트 단위 잠금 안에서 수행됩니다. 취약점 편집은 `finding.json`, `procedure.json`, 증적 manifest와 연결을 하나의 편집 단위로 취급하며 실패 시 이전 내용을 복구합니다. 편집창에서 새로 고른 증적은 저장 전까지 임시 상태로 유지됩니다. 재검증 결과는 `retests.json`의 독립 이력이며 취약점 업무 상태를 자동으로 덮어쓰지 않습니다. 삭제가 필요한 업무는 `archive/` 보관과 복구로 처리합니다.
 
 SQLite 지식 DB는 버전형 템플릿만 저장합니다. 템플릿을 프로젝트 취약점에 적용하면 문구를 복사하고 `template.id`와 `template.version`을 기록해 과거 보고서가 이후 템플릿 변경에 영향을 받지 않게 합니다.
 
@@ -17,10 +17,13 @@ SQLite 지식 DB는 버전형 템플릿만 저장합니다. 템플릿을 프로�
 - `project.json`: 프로젝트 식별 정보
 - `report-config.json`: 보고서 및 PPT 정책
 - `target.json`: 웹사이트별 정형 정보
-- `finding.json`: 취약점, 상태, 심각도, PPT용 짧은 문구 및 구조화된 기술 상세
-- `procedure.json`: 보고서용 재현 단계, 순서, 예상·관찰 결과 및 EVD 참조
-- `retests.json`: 재검증 이력과 단계별 결과·관찰 내용·EVD 참조
-- `evidence/evidence.json`: 증적 파일, 설명, 순서 및 보고서 포함 승인 여부
+- `finding.json`: 취약점, 업무 상태, 심각도, 보고서 문구 및 원인·분석
+- `procedure.json`: 재현 단계, 순서와 예상·관찰 결과
+- `retests.json`: 취약점 단위 재검증 이력과 전체 결과·검증 내용
+- `evidence/evidence.json`: 증적 파일 자산, 설명, 분류와 파생 원본 관계
+- `evidence/links.json`: 취약점 본문·기술 상세·절차·재검증의 EVD 사용처, 문맥과 배치
+
+증적 파일은 취약점에 한 번 등록하고 `links.json`에서 사용처를 연결합니다. `classification`은 `internal`, `report-ready`, `sensitive` 중 하나이며 파일 위치와 독립적입니다. 분류를 변경해도 파일을 이동하지 않습니다. 보고서 생성기는 `report-ready` 증적만 공통 Finding Report View에 올리고 Markdown과 PPT가 같은 뷰를 사용합니다. HTTP 요청·응답 원문은 기술 상세에 복사하지 않고 `technical` 사용처로 연결한 증적에서 읽습니다.
 
 CSV, Markdown 현황표와 PPT Export 결과는 파생 데이터입니다. 파생 데이터는 직접 수정하지 않고 기준 데이터에서 다시 생성합니다.
 
@@ -30,9 +33,11 @@ CSV, Markdown 현황표와 PPT Export 결과는 파생 데이터입니다. 파�
 프로젝트 원본
   ├─ target.json
   ├─ finding.json + procedure.json + retests.json
-  └─ evidence.json + evidence files
+  └─ evidence.json + links.json + evidence/files
              ↓
-          validate
+     common report view
+             ↓
+          validate/render
              ↓
   ┌──────────┴──────────┐
   ↓                     ↓

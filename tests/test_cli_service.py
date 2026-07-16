@@ -7,7 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from webpentestkit.cli import main
+from webpentestkit import __version__
+from webpentestkit.cli import build_parser, main
 
 
 class CliServiceIntegrationTest(unittest.TestCase):
@@ -16,6 +17,15 @@ class CliServiceIntegrationTest(unittest.TestCase):
         with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
             result = main(list(arguments))
         return result, output.getvalue()
+
+    def test_cli_version_uses_package_version(self) -> None:
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output), self.assertRaises(
+            SystemExit
+        ) as raised:
+            build_parser().parse_args(["--version"])
+        self.assertEqual(raised.exception.code, 0)
+        self.assertEqual(output.getvalue().strip(), f"Otter {__version__}")
 
     def test_cli_uses_service_layer_for_complete_record(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

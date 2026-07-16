@@ -3,7 +3,5 @@
   "Confirmed",
   "FalsePositive",
   "Accepted",
-  "Resolved",
-  "RetestFailed",
-  "RetestPassed"
+  "Resolved"
 ]

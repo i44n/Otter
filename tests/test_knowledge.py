@@ -6,7 +6,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from webpentestkit.core import add_target, init_project
 from webpentestkit.errors import KitError
 from webpentestkit.knowledge import KnowledgeService
 from webpentestkit.models import VulnerabilityTemplateInput
@@ -51,19 +50,18 @@ class KnowledgeBaseTest(unittest.TestCase):
         self.assertNotIn("Reviewed", historical.tags)
 
     def test_template_application_copies_snapshot_into_project(self) -> None:
-        project = init_project(
-            str(self.root / "project"),
+        project_service = ProjectService.create_project(
+            self.root / "project",
             "KNOWLEDGE-TEST",
             "Knowledge Test",
             "Sensitive Customer Name",
         )
-        add_target(
-            str(project),
+        project = project_service.root
+        project_service.create_target(
             "WEB-01",
             "Portal",
             "https://portal.example.test",
         )
-        project_service = ProjectService.open(project)
         template = self.knowledge.get_template("WPK-ACCESS-001", 1)
         finding = self.knowledge.create_finding_from_template(
             project_service,
@@ -110,6 +108,82 @@ class KnowledgeBaseTest(unittest.TestCase):
         self.assertNotIn("evidence", columns)
         self.assertNotIn("affected_url", columns)
         self.assertNotIn("Sensitive Customer Name", self.database.read_bytes().decode("utf-8", errors="ignore"))
+
+    def test_template_can_be_updated_archived_restored_and_deleted(self) -> None:
+        created = self.knowledge.add_template_version(
+            VulnerabilityTemplateInput(
+                id="WPK-CATALOG-001",
+                name="Catalog entry",
+                title="Catalog entry",
+                category="Other",
+                summary="Original summary.",
+                impact="Original impact.",
+                remediation="Original remediation.",
+                default_severity="Medium",
+                tags=("Original",),
+                status="Draft",
+            )
+        )
+
+        updated = self.knowledge.update_template(
+            created.id,
+            remediation="Updated remediation without a duplicate version.",
+            tags=("Updated",),
+            status="Approved",
+            reviewed_by="Security Reviewer",
+            reviewed_at="2026-07-16",
+        )
+        self.assertEqual(updated.version, created.version)
+        self.assertEqual(
+            updated.remediation,
+            "Updated remediation without a duplicate version.",
+        )
+        self.assertEqual(updated.tags, ("Updated",))
+        self.assertEqual(
+            len([item for item in self.knowledge.repository.list_versions() if item.id == created.id]),
+            1,
+        )
+
+        archived = self.knowledge.archive_template(created.id)
+        self.assertTrue(archived.archived)
+        self.assertEqual(archived.status, "Approved")
+        with self.assertRaises(KitError) as archived_apply:
+            project_service = ProjectService.create_project(
+                self.root / "archived-project", "ARCHIVED-T", "Archived Test"
+            )
+            project_service.create_target(
+                "WEB-01", "Portal", "https://portal.example.test"
+            )
+            self.knowledge.create_finding_from_template(
+                project_service, created.id, "WEB-01"
+            )
+        self.assertEqual(archived_apply.exception.code, "TEMPLATE_ARCHIVED")
+        restored = self.knowledge.restore_template(created.id)
+        self.assertFalse(restored.archived)
+        self.assertEqual(restored.status, "Approved")
+
+        self.knowledge.delete_template(created.id)
+        with self.assertRaises(KitError) as missing:
+            self.knowledge.get_template(created.id)
+        self.assertEqual(missing.exception.code, "TEMPLATE_NOT_FOUND")
+
+    def test_approved_template_requires_review_metadata(self) -> None:
+        with self.assertRaises(KitError) as missing_reviewer:
+            self.knowledge.add_template_version(
+                VulnerabilityTemplateInput(
+                    id="WPK-REVIEW-001",
+                    name="Review required",
+                    title="Review required",
+                    category="Other",
+                    summary="Summary.",
+                    impact="Impact.",
+                    remediation="Remediation.",
+                    status="Approved",
+                )
+            )
+        self.assertEqual(
+            missing_reviewer.exception.code, "TEMPLATE_REVIEWER_REQUIRED"
+        )
 
     def test_export_import_preserves_all_versions_and_is_idempotent(self) -> None:
         self.knowledge.create_next_version(

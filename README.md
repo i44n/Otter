@@ -1,9 +1,11 @@
 <div align="center">
   <img src="docs/assets/otter-logo.png" width="128" alt="Otter logo">
   <h1>Otter</h1>
-  <p><strong>A local-first workspace for authorized web security assessments.</strong></p>
+  <p><strong>From finding to report, without copying evidence between tools.</strong></p>
+  <p>A local-first desktop workspace for authorized web security assessments.</p>
   <p>
-    <img alt="Version" src="https://img.shields.io/badge/version-1.7.0-2563EB">
+    <img alt="Beta version" src="https://img.shields.io/badge/version-0.1.0b1%20beta-F59E0B">
+    <a href="https://github.com/Insu-Cho/Otter/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Insu-Cho/Otter/actions/workflows/ci.yml/badge.svg"></a>
     <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
     <img alt="Qt for Python" src="https://img.shields.io/badge/UI-PySide6-41CD52?logo=qt&logoColor=white">
     <img alt="Platforms" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey">
@@ -11,37 +13,77 @@
   </p>
 </div>
 
-![Otter findings workspace](docs/assets/screenshots/otter-findings-light.png)
+> [!WARNING]
+> Otter is in public beta. Back up important work and expect project formats and
+> workflows to change before 1.0. Pre-beta projects are not migrated automatically.
 
-Otter helps penetration testers keep targets, findings, reproduction procedures,
-evidence, retest history, assessment credentials, and report-ready content in one
-structured desktop workspace. Project data stays local by default and can be
-sealed into an encrypted `.wpkproj` container.
+![Otter dashboard showing assessment metrics, severity distribution, and recent findings](docs/assets/screenshots/otter-dashboard.png)
 
-Otter is a project and evidence management tool. It does not scan targets or run
-attacks.
+Otter keeps targets, findings, reproduction procedures, evidence, finding-level
+retests, reusable vulnerability guidance, and report outputs in one structured
+workspace. Data stays local by default and a project can be sealed into an
+encrypted `.wpkproj` container.
+
+Otter organizes assessment work. It does **not** scan targets or run attacks.
 
 ## Why Otter?
 
-- **Structured findings** — impact, remediation, technical details, procedures,
-  and multi-round retests share one data model.
-- **Evidence you can audit** — keep sensitive originals separate from redacted,
-  report-approved evidence and link files to individual procedure steps.
-- **Local-first security** — no server is required; project containers and the
-  credential vault use authenticated encryption with password and recovery-key
-  workflows.
-- **Reusable knowledge** — maintain a versioned vulnerability library and move it
-  between installations with atomic JSON import/export.
-- **Report-ready output** — generate validation results, Markdown/CSV reports, and
-  a layout-independent PPT data bundle with `slides.json` and curated evidence.
-- **Native desktop workflow** — modern PySide6 interface with light/dark themes,
-  keyboard navigation, archive/restore, and background report jobs.
+- **One structured finding record** — affected request, impact, remediation,
+  technical analysis, reproduction procedure, retest history, and linked evidence.
+- **Evidence with traceable purpose** — classify an asset once, then link it to a
+  finding body, technical details, a procedure step, or a retest without copying it.
+- **Delivery confidence** — validate project data and evidence policy before
+  generating Markdown, CSV, and a presentation-ready data bundle.
+- **Local-first security** — work without a server, encrypt project containers,
+  and keep assessment credentials in a separate authenticated vault.
+- **Reusable knowledge** — search, review, update, archive, and transfer a
+  versioned vulnerability library.
 
-## Screenshots
+## See the workflow
 
-| Light | Dark |
-| --- | --- |
-| ![Otter light theme](docs/assets/screenshots/otter-findings-light.png) | ![Otter dark theme](docs/assets/screenshots/otter-findings-dark.png) |
+### Keep the complete finding in one place
+
+Capture the affected request, business impact, remediation, root cause, analysis,
+and reproduction procedure as structured data instead of scattering notes across
+documents.
+
+![Structured finding details with technical analysis and reproduction steps](docs/assets/screenshots/otter-finding-workspace.png)
+
+### Retest at finding level and keep the evidence trail
+
+Record each remediation check against the finding, preserve the verification
+history, and see exactly where every linked evidence item is used.
+
+![Finding-level retest history and linked evidence table](docs/assets/screenshots/otter-retest-evidence.png)
+
+### Reuse evidence without duplicating request and response text
+
+HTTP exchanges and other evidence remain independent assets. Otter shows their
+disclosure status, linked finding, and output settings for every usage.
+
+![Sanitized HTTP evidence with disclosure status and usage traceability](docs/assets/screenshots/otter-evidence-traceability.png)
+
+### Turn reviewed guidance into new findings
+
+Maintain reusable vulnerability summaries, impact statements, remediation advice,
+CWE references, tags, review metadata, and history in the finding library.
+
+![Reviewed finding-library template ready to create a project finding](docs/assets/screenshots/otter-finding-library.png)
+
+### Validate before delivery
+
+Review data-quality and evidence-policy findings, confirm report readiness, generate
+Markdown and CSV outputs, and export structured content for presentation creation.
+
+![Validation and report readiness overview](docs/assets/screenshots/otter-validation-reports.png)
+
+### Protect local assessment data
+
+Create an encrypted project copy, rotate its password, and create verified backups
+from the project settings. Exported report files are intentionally treated as
+separate deliverables and are not protected by the project container.
+
+![Project settings with plaintext status and encrypted-copy action](docs/assets/screenshots/otter-project-protection.png)
 
 ## Quick start
 
@@ -50,45 +92,77 @@ Requirements:
 - Python 3.10 or newer
 - Windows or macOS
 
-From a cloned checkout:
+### Windows
 
 ```powershell
+git clone https://github.com/Insu-Cho/Otter.git
+cd Otter
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 python .\otter.py gui
 ```
 
-On macOS:
+### macOS
 
 ```bash
+git clone https://github.com/Insu-Cho/Otter.git
+cd Otter
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install -r requirements.txt
 python3 ./otter.py gui
 ```
 
-To explore a fictional project without entering data manually:
+### Explore the fictional sample
+
+The generated ACME project uses only `example.test` hosts and fictional evidence.
 
 ```powershell
 python .\examples\create_sample.py --force
-python .\otter.py gui --project .\examples\generated\acme-shop\project
+python .\examples\open_sample_gui.py
 ```
 
-## Typical workflow
+## Typical assessment flow
 
-1. Create a project and register one or more assessment targets.
-2. Add findings directly or start from the vulnerability library.
-3. Record impact, remediation, technical request/response details, and
-   reproducible steps.
-4. Attach sanitized report evidence and keep sensitive originals out of output.
-5. Record each retest with per-step outcomes and evidence.
-6. Validate the project, generate reports, and export the PPT-ready bundle.
+1. Create a project and register assessment targets.
+2. Add findings directly or start from the finding library.
+3. Record technical analysis and reproducible steps.
+4. Add evidence once and link it to the scopes where it is used.
+5. Record finding-level retests with supporting evidence.
+6. Validate the project and review security or content recommendations.
+7. Generate Markdown/CSV reports and export the PPT-ready bundle.
 
-## Project format
+## Outputs
 
-Project files are intentionally readable and versionable. Generated reports and
-exports are derived output and should not be edited as source data.
+Otter currently generates:
+
+- final and summary Markdown reports;
+- target and finding summaries;
+- findings CSV;
+- a localized validation report;
+- a presentation-ready folder with `slides.json`, SVG charts, finding content,
+  and curated report-ready evidence.
+
+The beta does not render a finished `.pptx` file. The exported bundle is designed
+for a separate presentation-production step.
+
+## Project and security model
+
+Project source files are readable JSON and evidence files so they remain auditable.
+The current internal project schema is version 3; this is independent of the Otter
+application version.
+
+Only linked evidence classified as report-ready is emitted to deliverables.
+Automated secret detection is a safeguard, not a replacement for human review.
+Keep recovery keys offline, use full-disk encryption, and never commit customer
+projects, credentials, target URLs, or raw evidence.
+
+Please report suspected vulnerabilities privately according to
+[SECURITY.md](SECURITY.md). Do not open a public issue for a security vulnerability.
+
+<details>
+<summary>Project layout</summary>
 
 ```text
 project/
@@ -104,27 +178,28 @@ project/
 │           ├─ retests.json
 │           └─ evidence/
 │              ├─ evidence.json
-│              ├─ raw/
-│              └─ report/
+│              ├─ links.json
+│              └─ files/
 └─ archive/
 ```
 
-## Security model
+</details>
 
-Otter is designed for authorized security work involving sensitive customer
-data. Report inclusion is denied for evidence marked sensitive, but automated
-detection is only a safeguard—not a replacement for human review. Keep recovery
-keys offline, use full-disk encryption, and never commit real assessment projects
-or raw evidence to Git.
+## Beta status
 
-Please report vulnerabilities privately according to [SECURITY.md](SECURITY.md).
-Do not open a public issue for a suspected security vulnerability.
+The current public development version is `0.1.0b1`.
+
+- Project schemas and workflows may change before 1.0.
+- Pre-beta project migrations are intentionally not provided.
+- Human review is required before sharing generated deliverables.
+- Packaging, signed installers, and automatic updates are not yet part of the beta.
 
 ## Documentation
 
 - [User guide (한국어)](docs/USER_GUIDE.md)
 - [Secure projects and threat model](docs/SECURE_PROJECTS.md)
 - [Procedure and retest model](docs/PROCEDURES.md)
+- [Localization](docs/LOCALIZATION.md)
 - [Development guide](docs/DEVELOPMENT.md)
 - [Architecture](DESIGN.md)
 - [Changelog](CHANGELOG.md)
@@ -133,21 +208,22 @@ Do not open a public issue for a suspected security vulnerability.
 
 ```powershell
 python -m unittest discover -s tests -v
-python -m compileall -q webpentestkit tests examples
+python -m compileall -q webpentestkit tests examples tools
 python .\examples\create_sample.py --force
+python .\tools\capture_readme_screenshots.py
 python .\otter.py validate --project .\examples\generated\acme-shop\project
 ```
 
-The GUI talks to the same service layer as the CLI. Views must not write JSON,
-SQLite, or evidence files directly. See [CONTRIBUTING.md](CONTRIBUTING.md) before
-submitting a change.
+The GUI uses the same service layer as the CLI. Views do not write JSON, SQLite,
+or evidence files directly. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting
+a change.
 
 ## Community
 
 - Use GitHub Issues for reproducible bugs and focused feature requests.
-- Use the pull request template and include tests for behavior changes.
+- Use fictional data in public issues and pull requests.
+- Include tests for behavior changes.
 - Follow the [Code of Conduct](CODE_OF_CONDUCT.md).
-- For usage questions, see [SUPPORT.md](SUPPORT.md).
 
 ## License
 

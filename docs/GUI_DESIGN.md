@@ -12,13 +12,16 @@ single page workspace. The primary workflow is:
 1. Open or create a project.
 2. Review project health on the dashboard.
 3. Register targets before recording findings and evidence.
-4. Filter findings and select one.
+4. Filter the full-width findings table and open one in the same page stack.
 5. Read its impact, remediation, technical details, procedure, retest timeline,
-   and evidence state in the detail panel.
+   and evidence state in a full-width detail view, then return without losing
+   list filters, sorting, selection, or scroll context.
 6. Create, edit, retest, or archive it without losing list context.
 
 Navigation is grouped by workspace, assessment resources, output, and
 management. Targets are a first-class workspace page rather than a Settings tab.
+Group labels use a compact tinted Level 1 treatment; clickable Level 2 items use
+larger indented text and reserve the primary background for the active page.
 
 ## Visual tokens
 
@@ -43,11 +46,26 @@ a severity badge.
   shared busy indicator.
 - Tables support keyboard selection, sorting, text search, and filters.
 - Empty states explain the next useful action.
-- Minimum supported viewport is 1280 by 720 at Windows display scaling.
+- Evidence classification controls contain asset properties only. Finding,
+  technical-detail, procedure, and retest associations live in a separate
+  usage section with per-link caption and placement controls.
+- The evidence workspace uses a sortable, searchable full-width table and a
+  full-width detail view with bounded image or text preview. It must not use a
+  finding combo box that visually resembles an evidence classification field;
+  finding selection appears only when creating or dropping an asset globally.
+- Finding and evidence pages use list-to-detail page stacks rather than narrow
+  master-detail splitters. Escape and Alt+Left return to the preserved list.
+- Evidence selectors inside finding, procedure, and retest editors stage link
+  caption and placement changes until the parent editor is saved.
+- Minimum supported logical viewport is 1024 by 600. Below 1280 pixels wide the
+  shell uses compact navigation and top-bar labels while preserving every action.
+- Hide low-priority table columns in compact mode instead of shrinking primary
+  content below its usable width.
 
-## Migration result
+## Qt application boundary
 
 The Tkinter implementation was removed after the Qt UI reached controller-level
 parity, passed offscreen smoke tests and a real Windows rendering smoke test,
-and preserved the CLI and project file regression suite. `webpentestkit.gui`
-remains as a compatibility launch namespace and delegates to `qt_gui`.
+and preserved the CLI and project file regression suite. The CLI launches
+`webpentestkit.qt_gui` directly, while `webpentestkit.gui` contains only the
+toolkit-independent `GuiController` service boundary.

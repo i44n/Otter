@@ -6,7 +6,6 @@ import zipfile
 from pathlib import Path
 from unittest import mock
 
-from webpentestkit.core import add_target, init_project
 from webpentestkit.encrypted_project import (
     EncryptedProjectStorage,
     _safe_extract_archive,
@@ -27,19 +26,20 @@ class EncryptedProjectTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        self.project = init_project(
-            str(self.root / "plain-project"),
+        service = ProjectService.create_project(
+            self.root / "plain-project",
             "ENCRYPTED-TEST",
             "Highly Sensitive Assessment",
             "Sensitive Customer Name",
         )
-        add_target(
-            str(self.project),
+        self.project = service.root
+        service.create_target(
             "WEB-01",
             "Sensitive Portal",
             "https://sensitive.example.test",
             "Staging",
         )
+        service.close()
         self.container = self.root / "assessment.wpkproj"
 
     def tearDown(self) -> None:
@@ -83,6 +83,10 @@ class EncryptedProjectTest(unittest.TestCase):
         )
         reopened_service = ProjectService.open(reopened)
         try:
+            self.assertNotIn(
+                "PROJECT_PLAINTEXT",
+                {item["code"] for item in reopened_service.validate()},
+            )
             self.assertEqual(
                 reopened_service.get_target("WEB-01").name,
                 "Updated encrypted portal",
@@ -129,6 +133,22 @@ class EncryptedProjectTest(unittest.TestCase):
             creation.recovery_key,
         )
         recovered.close()
+
+    def test_outdated_encrypted_project_is_rejected_without_reseal(self) -> None:
+        for record in ProjectService.inspect_schema(self.project):
+            value = record.path.read_text(encoding="utf-8")
+            value = value.replace('"schemaVersion": 3', '"schemaVersion": 2', 1)
+            record.path.write_text(value, encoding="utf-8")
+        creation = self._create()
+        self.assertEqual(read_encrypted_project_header(self.container)["revision"], 0)
+
+        with self.assertRaises(KitError) as raised:
+            ProjectService.open_encrypted(
+                creation.container,
+                password=PASSWORD,
+            )
+        self.assertEqual(raised.exception.code, "SCHEMA_VERSION_UNSUPPORTED")
+        self.assertEqual(read_encrypted_project_header(self.container)["revision"], 0)
 
     def test_ciphertext_tamper_is_detected(self) -> None:
         creation = self._create()

@@ -6,7 +6,6 @@ import unittest
 from pathlib import Path
 
 from webpentestkit.common import KitError
-from webpentestkit.core import add_target, init_project
 from webpentestkit.models import FindingInput, ProcedureStepInput
 from webpentestkit.reporting import validate_project
 from webpentestkit.reporting import export_ppt_bundle
@@ -17,18 +16,17 @@ class ProcedureServiceTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        self.project = init_project(
-            str(self.root / "project"),
+        self.service = ProjectService.create_project(
+            self.root / "project",
             "PROCEDURE-TEST",
             "Procedure Test",
         )
-        add_target(
-            str(self.project),
+        self.project = self.service.root
+        self.service.create_target(
             "WEB-01",
             "Portal",
             "https://portal.example.test",
         )
-        self.service = ProjectService.open(self.project)
         self.finding = self.service.create_finding(
             FindingInput(target_id="WEB-01", title="Structured reproduction")
         )
@@ -54,7 +52,7 @@ class ProcedureServiceTest(unittest.TestCase):
             image,
             "Step result",
             evidence_type="screenshot",
-            include_in_report=True,
+            classification="report-ready",
         )
         saved = self.service.save_procedure(
             self.finding.id,
@@ -99,18 +97,16 @@ class ProcedureServiceTest(unittest.TestCase):
         self.assertEqual([step.id for step in revised.steps], ["STEP-002", "STEP-003"])
         self.assertEqual(revised.next_step_number, 4)
 
-    def test_missing_procedure_is_backward_compatible_and_created_on_save(self) -> None:
+    def test_missing_procedure_returns_structured_error(self) -> None:
         path = self._procedure_path()
         path.unlink()
         self.service.close()
         self.service = ProjectService.open(self.project)
-        self.assertEqual(self.service.get_procedure(self.finding.id).steps, ())
-        self.service.save_procedure(
-            self.finding.id,
-            preconditions="",
-            steps=[ProcedureStepInput(title="Open page", action="Open the target page.")],
-        )
-        self.assertTrue(path.is_file())
+        with self.assertRaises(KitError) as raised:
+            self.service.get_procedure(self.finding.id)
+        self.assertEqual(raised.exception.code, "PROCEDURE_NOT_FOUND")
+        issues = validate_project(self.project)
+        self.assertIn("PROCEDURE_FILE_MISSING", {item["code"] for item in issues})
 
     def test_corrupt_next_step_number_returns_structured_error(self) -> None:
         path = self._procedure_path()
@@ -159,38 +155,37 @@ class ProcedureServiceTest(unittest.TestCase):
             )
         self.assertEqual(raised.exception.code, "PROCEDURE_STEP_DUPLICATE")
 
-    def test_validation_rejects_invalid_and_non_report_evidence_references(self) -> None:
+    def test_validation_marks_internal_links_and_rejects_unknown_link_targets(self) -> None:
         source = self.root / "raw.txt"
         source.write_text("response body", encoding="utf-8")
         evidence = self.service.add_evidence(
             self.finding.id,
             source,
             "Raw evidence",
-            include_in_report=False,
+            classification="internal",
+        )
+        step = ProcedureStepInput(
+            title="Inspect response",
+            action="Send the request and inspect the response.",
+            evidence_ids=(evidence.id,),
         )
         self.service.save_procedure(
             self.finding.id,
             preconditions="",
-            steps=[
-                ProcedureStepInput(
-                    title="Inspect response",
-                    action="Send the request and inspect the response.",
-                    evidence_ids=(evidence.id,),
-                )
-            ],
+            steps=[step],
         )
         codes = {item["code"] for item in validate_project(self.project)}
-        self.assertIn("PROCEDURE_EVIDENCE_NOT_REPORT", codes)
+        self.assertIn("EVIDENCE_LINK_INTERNAL", codes)
 
-        path = self._procedure_path()
+        path = self.service.finding_location(self.finding.id) / "evidence" / "links.json"
         value = json.loads(path.read_text(encoding="utf-8"))
-        value["steps"][0]["evidence"] = ["EVD-999"]
+        value["items"][0]["evidenceId"] = "EVD-999"
         path.write_text(
             json.dumps(value, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
         codes = {item["code"] for item in validate_project(self.project)}
-        self.assertIn("PROCEDURE_EVIDENCE_UNKNOWN", codes)
+        self.assertIn("EVIDENCE_LINK_UNKNOWN", codes)
 
     def test_export_includes_structured_procedure_slides_and_deduplicated_evidence(self) -> None:
         source = self.root / "step.png"
@@ -202,7 +197,7 @@ class ProcedureServiceTest(unittest.TestCase):
             source,
             "Observed disclosure",
             evidence_type="screenshot",
-            include_in_report=True,
+            classification="report-ready",
         )
         self.service.save_procedure(
             self.finding.id,
@@ -238,6 +233,54 @@ class ProcedureServiceTest(unittest.TestCase):
         self.assertIn("### Step 1. Change the order ID", summary)
         self.assertTrue((export / "findings" / self.finding.id / "procedure.json").is_file())
 
+    def test_link_caption_and_placement_control_both_report_outputs(self) -> None:
+        source = self.root / "appendix.http"
+        source.write_text("HTTP/1.1 403 Forbidden", encoding="utf-8")
+        evidence = self.service.add_evidence(
+            self.finding.id,
+            source,
+            "Appendix response",
+            evidence_type="http-response",
+            classification="report-ready",
+        )
+        procedure = self.service.save_procedure(
+            self.finding.id,
+            preconditions="",
+            steps=[
+                ProcedureStepInput(
+                    title="Verify denial",
+                    action="Send the request.",
+                    evidence_ids=(evidence.id,),
+                )
+            ],
+        )
+        self.service.update_evidence(
+            self.finding.id,
+            evidence.id,
+            link_updates=[
+                {
+                    "scope_type": "procedure",
+                    "scope_id": procedure.steps[0].id,
+                    "caption": "Authorization failure captured after remediation.",
+                    "placement": "appendix",
+                }
+            ],
+        )
+        report = self.service.build_reports() / "report.md"
+        text = report.read_text(encoding="utf-8")
+        self.assertIn("#### Evidence Appendix", text)
+        self.assertIn("Authorization failure captured after remediation.", text)
+        export = self.service.export_ppt(self.root / "appendix-export")
+        slides = json.loads((export / "slides.json").read_text(encoding="utf-8"))["slides"]
+        procedure_slide = next(slide for slide in slides if slide["type"] == "finding-procedure")
+        self.assertEqual(procedure_slide["evidence"], [])
+        appendix_slide = next(
+            slide
+            for slide in slides
+            if slide["type"] == "finding-evidence" and slide.get("section") == "appendix"
+        )
+        self.assertEqual(appendix_slide["evidence"][0]["id"], evidence.id)
+
     def test_export_paginates_all_procedure_evidence(self) -> None:
         evidence_ids = []
         for index in range(5):
@@ -247,7 +290,7 @@ class ProcedureServiceTest(unittest.TestCase):
                 self.finding.id,
                 source,
                 f"Step evidence {index + 1}",
-                include_in_report=True,
+                classification="report-ready",
             )
             evidence_ids.append(evidence.id)
         self.service.save_procedure(

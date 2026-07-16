@@ -44,9 +44,7 @@ class GuiControllerIntegrationTest(unittest.TestCase):
             finding = controller.update_finding(
                 finding.id,
                 technical_root_cause="Object ownership is not validated on the server.",
-                technical_request="GET /api/orders/2 HTTP/1.1",
-                technical_response="HTTP/1.1 200 OK",
-                technical_analyst_notes="A second customer's order was returned.",
+                technical_analysis="A second customer's order was returned.",
             )
 
             source = root / "response.http"
@@ -62,10 +60,9 @@ class GuiControllerIntegrationTest(unittest.TestCase):
                 "Redacted order response",
                 "http-exchange",
                 "Another sample user's response.",
-                True,
-                False,
+                "report-ready",
             )
-            self.assertTrue(evidence.include_in_report)
+            self.assertTrue(evidence.is_report_ready)
             updated = controller.update_evidence(
                 finding.id,
                 evidence.id,

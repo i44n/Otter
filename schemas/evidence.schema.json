@@ -4,12 +4,12 @@
   "type": "object",
   "required": ["schemaVersion", "items"],
   "properties": {
-    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "schemaVersion": { "const": 3 },
     "items": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "type", "file", "title", "includeInReport", "containsSensitiveData"],
+        "required": ["id", "type", "file", "title", "classification"],
         "properties": {
           "id": { "type": "string", "pattern": "^EVD-[0-9]{3}$" },
           "type": { "type": "string" },
@@ -17,8 +17,8 @@
           "title": { "type": "string" },
           "caption": { "type": "string" },
           "order": { "type": "integer", "minimum": 0 },
-          "includeInReport": { "type": "boolean" },
-          "containsSensitiveData": { "type": "boolean" },
+          "classification": { "enum": ["internal", "report-ready", "sensitive"] },
+          "derivedFrom": { "type": "string", "pattern": "^EVD-[0-9]{3}$" },
           "addedAt": { "type": "string" }
         }
       }

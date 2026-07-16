@@ -14,12 +14,13 @@ ProjectService / KnowledgeService
         +-- reporting.py -> 검증/보고서/PPT 번들
 ```
 
-GUI는 JSON이나 SQLite를 직접 읽거나 쓰지 않습니다. `GuiController`를 통해 서비스 계층만 호출합니다. 기존 `core.py` API는 호환성을 위해 유지하며 프로젝트 잠금을 공유합니다.
+GUI는 JSON이나 SQLite를 직접 읽거나 쓰지 않습니다. `GuiController`를 통해 서비스 계층만 호출하며, 프로젝트 생성과 변경은 모두 `ProjectService`가 담당합니다.
 
 ## 주요 모듈
 
 - `models.py`: 불변 데이터 모델 및 입력 모델
 - `errors.py`: 코드, 필드, 경로를 포함하는 구조화된 `KitError`
+- `localization.py`: UI·오류 언어팩 로딩, fallback과 안정적인 번역 키 처리
 - `repository.py`: 프로젝트 파일 접근과 다중 JSON 롤백
 - `storage.py`: 평문 디렉터리와 암호화 저장소가 공유하는 프로젝트 경계
 - `encrypted_project.py`: `.wpkproj` 봉투 암호화, 잠금, 백업과 복원
@@ -27,11 +28,13 @@ GUI는 JSON이나 SQLite를 직접 읽거나 쓰지 않습니다. `GuiController
 - `security_crypto.py`: Argon2id 파라미터 검증과 복구키 공통 처리
 - `services.py`: 프로젝트, 대상, 취약점, 증적, 보관, 보고서 업무 규칙
 - `locking.py`: 스레드·프로세스 간 프로젝트 단위 재진입 잠금
-- `migrations.py`: 프로젝트 스키마 검사, 백업과 순차 마이그레이션
+- `schema_versions.py`: 프로젝트 문서의 현재 스키마 버전 검사
 - `archives.py`: 대상·취약점·증적 보관과 복구
 - `knowledge.py`: 버전형 SQLite 취약점 템플릿
 - `gui/controller.py`: Qt 화면과 서비스 계층 사이의 상태 경계
 - `qt_gui/`: PySide6 앱 셸, 화면, 다이얼로그, 테이블 모델, 테마와 작업 실행기
+
+언어팩 형식과 UI/보고서 언어 분리 규칙은 [LOCALIZATION.md](LOCALIZATION.md)를 참고합니다.
 
 ## 저장 규칙
 
@@ -41,9 +44,9 @@ GUI는 JSON이나 SQLite를 직접 읽거나 쓰지 않습니다. `GuiController
 
 ## 스키마 변경
 
-프로젝트 JSON 구조를 바꾸려면 `CURRENT_SCHEMA_VERSION`, `schemas/*.schema.json`, 문서 종류별 마이그레이션, 생성 템플릿과 테스트를 함께 수정합니다. 마이그레이션은 버전을 건너뛰지 않고 한 단계씩 실행해야 하며 알 수 없는 미래 버전은 수정하지 않습니다.
+프로젝트 JSON 구조를 바꾸려면 `CURRENT_SCHEMA_VERSION`, `schemas/*.schema.json`, 생성 코드와 테스트를 함께 수정합니다. 현재 개발 데이터는 현재 버전만 지원하며 이전 버전과 알 수 없는 미래 버전은 수정하지 않고 열기를 거부합니다. 실제 사용자 데이터에 대한 호환이 필요해지는 시점부터 명시적인 마이그레이션을 추가합니다.
 
-지식 DB 구조를 변경할 때는 `KNOWLEDGE_SCHEMA_VERSION`과 별도의 DB 마이그레이션을 추가해야 합니다. 이미 저장된 템플릿 버전의 문구와 태그는 변경하지 않습니다.
+지식 DB 구조를 변경할 때는 `KNOWLEDGE_SCHEMA_VERSION`과 별도의 DB 마이그레이션을 추가해야 합니다. 라이브러리의 일반 수정은 현재 항목을 제자리에서 갱신하고, 프로젝트에 적용된 취약점은 복사된 스냅샷을 유지합니다. 버전 테이블은 기존 내보내기·가져오기 번들 호환을 위해 남겨 둡니다.
 
 ## 지식 DB 경계
 

@@ -1,14 +1,14 @@
 {
   "reportTitle": "Web Application Penetration Test Report",
   "customerName": "{{CUSTOMER_NAME}}",
-  "classification": "대외비",
+  "classification": "Confidential",
   "assessmentPeriod": {
     "from": "",
     "to": ""
   },
   "presentation": {
     "aspectRatio": "16:9",
-    "language": "ko-KR",
+    "language": "en-US",
     "font": "Pretendard",
     "theme": "corporate",
     "includeInformational": false,

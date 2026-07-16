@@ -8,24 +8,25 @@ from unittest import mock
 
 import webpentestkit.repository as repository_module
 from webpentestkit.common import KitError
-from webpentestkit.core import add_target, init_project
 from webpentestkit.locking import file_lock
 from webpentestkit.repository import ProjectRepository
+from webpentestkit.services import ProjectService
 
 
 class PersistenceSafetyTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        self.project = init_project(
-            str(self.root / "project"), "LOCK-TEST", "Lock Test"
+        service = ProjectService.create_project(
+            self.root / "project", "LOCK-TEST", "Lock Test"
         )
-        add_target(
-            str(self.project),
+        self.project = service.root
+        service.create_target(
             "WEB-01",
             "Portal",
             "https://portal.example.test",
         )
+        service.close()
         self.repository = ProjectRepository(self.project)
 
     def tearDown(self) -> None:

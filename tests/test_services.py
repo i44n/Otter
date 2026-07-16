@@ -7,8 +7,7 @@ from pathlib import Path
 from unittest import mock
 
 from webpentestkit.common import KitError
-from webpentestkit.core import add_target, init_project
-from webpentestkit.models import FindingInput, ProcedureStepInput
+from webpentestkit.models import EvidenceLinkInput, FindingInput, ProcedureStepInput
 from webpentestkit.services import ProjectService
 
 
@@ -16,20 +15,19 @@ class ProjectServiceTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        self.project = init_project(
-            str(self.root / "project"),
+        self.service = ProjectService.create_project(
+            self.root / "project",
             "SERVICE-TEST",
             "Service Test",
             "Original Customer",
         )
-        add_target(
-            str(self.project),
+        self.project = self.service.root
+        self.service.create_target(
             "WEB-01",
             "Original Target",
             "https://old.example.test",
             "Staging",
         )
-        self.service = ProjectService.open(self.project)
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -58,6 +56,58 @@ class ProjectServiceTest(unittest.TestCase):
         self.assertEqual(procedure.steps[0].id, "STEP-001")
         self.assertIn("authenticated owner constraint", updated.technical_details.root_cause)
 
+    def test_finding_bundle_saves_technical_link_metadata_atomically(self) -> None:
+        finding = self.service.create_finding(
+            FindingInput(target_id="WEB-01", title="Technical link metadata")
+        )
+        source = self.root / "technical.http"
+        source.write_text("HTTP/1.1 403 Forbidden", encoding="utf-8")
+        evidence = self.service.add_evidence(
+            finding.id,
+            source,
+            "Forbidden response",
+            evidence_type="http-response",
+            classification="report-ready",
+        )
+        self.service.update_finding_bundle(
+            finding.id,
+            finding_values={},
+            preconditions="",
+            steps=[],
+            technical_evidence_links=(
+                EvidenceLinkInput(
+                    evidence.id,
+                    "Technical detail response.",
+                    "appendix",
+                ),
+            ),
+        )
+        link = next(
+            item
+            for item in self.service.list_evidence_links(finding.id)
+            if item.scope_type == "technical"
+        )
+        self.assertEqual(link.caption, "Technical detail response.")
+        self.assertEqual(link.placement, "appendix")
+        with self.assertRaises(KitError):
+            self.service.update_finding_bundle(
+                finding.id,
+                finding_values={"title": "Must roll back"},
+                preconditions="changed",
+                steps=[],
+                technical_evidence_links=(
+                    EvidenceLinkInput(evidence.id, "Invalid placement", "sideways"),
+                ),
+            )
+        restored = next(
+            item
+            for item in self.service.list_evidence_links(finding.id)
+            if item.scope_type == "technical"
+        )
+        self.assertEqual(self.service.get_finding(finding.id).title, "Technical link metadata")
+        self.assertEqual(restored.caption, "Technical detail response.")
+        self.assertEqual(restored.placement, "appendix")
+
     def test_finding_bundle_rolls_back_every_document_on_failure(self) -> None:
         finding = self.service.create_finding(
             FindingInput(target_id="WEB-01", title="Rollback finding")
@@ -70,7 +120,7 @@ class ProjectServiceTest(unittest.TestCase):
         old_finding = self.service.get_finding(finding.id)
         old_procedure = self.service.get_procedure(finding.id)
         with mock.patch.object(
-            self.service.repository,
+            self.service,
             "save_procedure",
             side_effect=OSError("simulated procedure write failure"),
         ):
@@ -91,7 +141,7 @@ class ProjectServiceTest(unittest.TestCase):
     def test_create_finding_bundle_removes_partial_finding_on_failure(self) -> None:
         before_ids = [item.id for item in self.service.list_findings()]
         with mock.patch.object(
-            self.service.repository,
+            self.service,
             "save_procedure",
             side_effect=OSError("simulated procedure write failure"),
         ):
@@ -122,6 +172,13 @@ class ProjectServiceTest(unittest.TestCase):
         self.assertEqual(target.name, "Customer Portal")
         self.assertEqual(target.base_url, "https://portal.example.test")
         self.assertTrue(target.updated_at)
+        self.assertEqual(
+            self.service.update_target("WEB-01", status="Paused").status,
+            "Paused",
+        )
+        with self.assertRaises(KitError) as invalid_target_status:
+            self.service.update_target("WEB-01", status="banana")
+        self.assertEqual(invalid_target_status.exception.code, "CHOICE_INVALID")
 
         finding = self.service.create_finding(
             FindingInput(
@@ -172,9 +229,9 @@ class ProjectServiceTest(unittest.TestCase):
 
         updated = self.service.update_finding(
             finding.id,
-            technical_analyst_notes="Service-managed note.",
+            technical_analysis="Service-managed analysis.",
         )
-        self.assertEqual(updated.technical_details.analyst_notes, "Service-managed note.")
+        self.assertEqual(updated.technical_details.analysis, "Service-managed analysis.")
 
     def test_evidence_move_updates_manifest_and_finding_reference(self) -> None:
         finding = self.service.create_finding(
@@ -198,37 +255,86 @@ class ProjectServiceTest(unittest.TestCase):
             source,
             "Redacted response",
             evidence_type="http-exchange",
-            include_in_report=True,
+            classification="report-ready",
+            use_in_finding=True,
         )
-        self.assertTrue(evidence.include_in_report)
-        self.assertTrue(evidence.file.startswith("report/"))
-        self.assertIn(evidence.id, self.service.get_finding(finding.id).presentation.evidence)
+        self.assertTrue(evidence.is_report_ready)
+        self.assertTrue(evidence.file.startswith("files/"))
+        self.assertTrue(self.service.get_evidence_usage(finding.id, evidence.id).finding_presentation)
+        original_location = self.service.evidence_location(finding.id, evidence.id)
 
         moved = self.service.update_evidence(
             finding.id,
             evidence.id,
             title="Internal response",
-            include_in_report=False,
-            sensitive=True,
+            classification="sensitive",
+            use_in_finding=False,
         )
-        self.assertFalse(moved.include_in_report)
-        self.assertTrue(moved.contains_sensitive_data)
-        self.assertTrue(moved.file.startswith("raw/"))
-        self.assertNotIn(evidence.id, self.service.get_finding(finding.id).presentation.evidence)
+        self.assertFalse(moved.is_report_ready)
+        self.assertTrue(moved.is_sensitive)
+        self.assertTrue(moved.file.startswith("files/"))
+        self.assertFalse(self.service.get_evidence_usage(finding.id, evidence.id).finding_presentation)
 
         finding_record = next(self.project.glob("targets/*/findings/*/finding.json"))
         finding_folder = finding_record.parent
         self.assertTrue((finding_folder / "evidence" / moved.file).is_file())
-        self.assertFalse((finding_folder / "evidence" / evidence.file).exists())
+        self.assertEqual(self.service.evidence_location(finding.id, evidence.id), original_location)
 
-        with self.assertRaises(KitError) as raised:
-            self.service.update_evidence(
-                finding.id,
-                evidence.id,
-                include_in_report=True,
-            )
-        self.assertEqual(raised.exception.code, "SENSITIVE_REPORT_EVIDENCE")
-        self.assertEqual(raised.exception.field, "include_in_report")
+        report_ready = self.service.update_evidence(
+            finding.id,
+            evidence.id,
+            classification="report-ready",
+        )
+        self.assertEqual(report_ready.classification, "report-ready")
+        self.assertEqual(self.service.evidence_location(finding.id, evidence.id), original_location)
+
+    def test_report_eligibility_and_finding_usage_are_independent(self) -> None:
+        finding = self.service.create_finding(
+            FindingInput(target_id="WEB-01", title="Reusable evidence")
+        )
+        source = self.root / "reusable.http"
+        source.write_text("HTTP/1.1 403 Forbidden", encoding="utf-8")
+        evidence = self.service.add_evidence(
+            finding.id,
+            source,
+            "Reusable response",
+            classification="report-ready",
+        )
+        self.assertTrue(evidence.is_report_ready)
+        usage = self.service.get_evidence_usage(finding.id, evidence.id)
+        self.assertFalse(usage.finding_presentation)
+
+        self.service.update_evidence(
+            finding.id, evidence.id, use_in_finding=True
+        )
+        self.assertTrue(
+            self.service.get_evidence_usage(finding.id, evidence.id).finding_presentation
+        )
+
+    def test_report_ready_copy_can_reference_its_sensitive_original(self) -> None:
+        finding = self.service.create_finding(
+            FindingInput(target_id="WEB-01", title="Derived evidence")
+        )
+        original_path = self.root / "original.http"
+        original_path.write_text("Authorization: Bearer secret", encoding="utf-8")
+        original = self.service.add_evidence(
+            finding.id,
+            original_path,
+            "Sensitive original",
+            classification="sensitive",
+        )
+        redacted_path = self.root / "redacted.http"
+        redacted_path.write_text("Authorization: [REDACTED]", encoding="utf-8")
+        redacted = self.service.add_evidence(
+            finding.id,
+            redacted_path,
+            "Report copy",
+            classification="report-ready",
+            derived_from=original.id,
+        )
+        self.assertEqual(redacted.derived_from, original.id)
+        self.assertTrue(redacted.is_report_ready)
+        self.assertTrue(original.is_sensitive)
 
     def test_evidence_file_replacement_preserves_id_and_rolls_back(self) -> None:
         finding = self.service.create_finding(
@@ -330,6 +436,11 @@ class ProjectServiceTest(unittest.TestCase):
                 assessment_to="2026-07-10",
             )
         self.assertEqual(raised.exception.code, "ASSESSMENT_PERIOD_INVALID")
+        self.assertEqual(self.service.get_report_config(), config)
+
+        with self.assertRaises(KitError) as invalid_language:
+            self.service.update_report_config(language="banana")
+        self.assertEqual(invalid_language.exception.code, "CHOICE_INVALID")
         self.assertEqual(self.service.get_report_config(), config)
 
         old_project = self.service.get_project()

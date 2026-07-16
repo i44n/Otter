@@ -4,42 +4,22 @@
   "type": "object",
   "required": ["schemaVersion", "findingId", "nextRetestNumber", "items", "updatedAt"],
   "properties": {
-    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "schemaVersion": { "const": 3 },
     "findingId": { "type": "string", "pattern": "^WEB-[0-9]{2,3}-[0-9]{3}$" },
     "nextRetestNumber": { "type": "integer", "minimum": 1 },
     "items": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "testedAt", "tester", "result", "remediationSummary", "steps", "notes", "includeInReport", "createdAt", "updatedAt"],
+        "required": ["id", "testedAt", "tester", "result", "remediationSummary", "verificationDetails", "notes", "createdAt", "updatedAt"],
         "properties": {
           "id": { "type": "string", "pattern": "^RT-[0-9]{3}$" },
           "testedAt": { "type": "string", "format": "date" },
           "tester": { "type": "string" },
           "result": { "enum": ["Pending", "Passed", "Failed", "Partial"] },
           "remediationSummary": { "type": "string" },
-          "steps": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["procedureStepId", "title", "action", "result", "observedResult", "evidence"],
-              "properties": {
-                "procedureStepId": { "type": "string", "pattern": "^STEP-[0-9]{3}$" },
-                "title": { "type": "string", "minLength": 1 },
-                "action": { "type": "string", "minLength": 1 },
-                "result": { "enum": ["Pending", "Passed", "Failed", "Partial"] },
-                "observedResult": { "type": "string" },
-                "evidence": {
-                  "type": "array",
-                  "items": { "type": "string", "pattern": "^EVD-[0-9]{3}$" },
-                  "uniqueItems": true
-                }
-              },
-              "additionalProperties": false
-            }
-          },
+          "verificationDetails": { "type": "string" },
           "notes": { "type": "string" },
-          "includeInReport": { "type": "boolean" },
           "createdAt": { "type": "string" },
           "updatedAt": { "type": "string" }
         },

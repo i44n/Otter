@@ -8,7 +8,6 @@ import unittest
 from pathlib import Path
 
 from webpentestkit.common import write_json
-from webpentestkit.core import add_target, init_project
 from webpentestkit.credential_vault import (
     KDF_MEMORY_MAX_KIB,
     VAULT_RELATIVE_PATH,
@@ -28,19 +27,20 @@ class CredentialVaultTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        self.project = init_project(
-            str(self.root / "project"),
+        service = ProjectService.create_project(
+            self.root / "project",
             "VAULT-TEST",
             "Credential Vault Test",
             "Sensitive Customer",
         )
-        add_target(
-            str(self.project),
+        self.project = service.root
+        service.create_target(
             "WEB-01",
             "Portal",
             "https://portal.example.test",
             "Staging",
         )
+        service.close()
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -134,37 +134,27 @@ class CredentialVaultTest(unittest.TestCase):
             vault.list_credentials()
         self.assertEqual(locked.exception.code, "VAULT_LOCKED")
 
-    def test_v1_payload_migrates_to_non_reusing_id_counter(self) -> None:
+    def test_outdated_payload_is_rejected(self) -> None:
         CredentialVaultService.create(self.project, PASSWORD)
         vault = CredentialVaultService.unlock_with_password(self.project, PASSWORD)
         first = vault.add_credential(self._credential())
         self.assertEqual(first.id, "ACC-001")
 
-        legacy_payload = copy.deepcopy(vault._payload)
-        legacy_payload["schemaVersion"] = 1
-        legacy_payload.pop("nextCredentialNumber")
-        legacy_envelope = copy.deepcopy(vault._envelope)
-        legacy_envelope["payload"] = _encrypt_payload(
-            legacy_payload,
+        outdated_payload = copy.deepcopy(vault._payload)
+        outdated_payload["schemaVersion"] = 1
+        outdated_payload.pop("nextCredentialNumber")
+        outdated_envelope = copy.deepcopy(vault._envelope)
+        outdated_envelope["payload"] = _encrypt_payload(
+            outdated_payload,
             bytes(vault._data_key),
-            str(legacy_envelope["containerId"]),
+            str(outdated_envelope["containerId"]),
         )
         vault.lock()
-        write_json(self.project / VAULT_RELATIVE_PATH, legacy_envelope)
+        write_json(self.project / VAULT_RELATIVE_PATH, outdated_envelope)
 
-        migrated = CredentialVaultService.unlock_with_password(self.project, PASSWORD)
-        self.assertEqual(migrated.next_credential_id(), "ACC-002")
-        migrated.archive_credential("ACC-001")
-        migrated.purge_credential("ACC-001")
-        second = migrated.add_credential(self._credential(name="Post-migration account"))
-        self.assertEqual(second.id, "ACC-002")
-        migrated.lock()
-
-        reopened = CredentialVaultService.unlock_with_password(self.project, PASSWORD)
-        self.assertEqual([item.id for item in reopened.list_credentials()], ["ACC-002"])
-        self.assertEqual(reopened._payload["schemaVersion"], 2)
-        self.assertEqual(reopened._payload["nextCredentialNumber"], 3)
-        reopened.lock()
+        with self.assertRaises(KitError) as raised:
+            CredentialVaultService.unlock_with_password(self.project, PASSWORD)
+        self.assertEqual(raised.exception.code, "VAULT_CORRUPT")
 
     def test_project_archive_view_restores_and_purges_credentials(self) -> None:
         service = ProjectService.open(self.project)
@@ -218,9 +208,11 @@ class CredentialVaultTest(unittest.TestCase):
             CredentialVaultService.unlock_with_recovery_key(self.project, recovery_key)
         self.assertEqual(tampered.exception.code, "VAULT_CORRUPT")
 
-        clean_project = init_project(
-            str(self.root / "kdf-project"), "KDF-TEST", "KDF Test"
+        clean_service = ProjectService.create_project(
+            self.root / "kdf-project", "KDF-TEST", "KDF Test"
         )
+        clean_project = clean_service.root
+        clean_service.close()
         CredentialVaultService.create(clean_project, PASSWORD)
         clean_path = clean_project / VAULT_RELATIVE_PATH
         envelope = json.loads(clean_path.read_text(encoding="utf-8"))
