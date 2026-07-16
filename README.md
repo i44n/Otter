@@ -196,7 +196,8 @@ The current public development version is `0.1.0b1`.
 
 ## Documentation
 
-- [User guide (한국어)](docs/USER_GUIDE.md)
+- [User guide (English)](docs/USER_GUIDE_EN.md)
+- [사용자 가이드 (한국어)](docs/USER_GUIDE.md)
 - [Secure projects and threat model](docs/SECURE_PROJECTS.md)
 - [Procedure and retest model](docs/PROCEDURES.md)
 - [Localization](docs/LOCALIZATION.md)
