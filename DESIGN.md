@@ -4,6 +4,18 @@
 
 CLI와 PySide6 GUI는 동일한 `ProjectService`와 `KnowledgeService`를 사용합니다. 프로젝트 파일 접근은 `ProjectRepository`, 취약점 지식 DB 접근은 `KnowledgeRepository`가 담당하며 GUI에서 JSON 또는 SQLite를 직접 수정하지 않습니다.
 
+`services.py`는 외부 호출이 의존하는 `ProjectService` facade만 제공하고 실제 업무
+규칙은 `project_services/`의 프로젝트 수명주기, 보안, 대상, 취약점, 증적 연결,
+절차, 재검증, 증적, 보관과 보고서 기능 모듈이 담당합니다. 같은 방식으로
+`reporting.py`, `qt_gui/pages.py`, `qt_gui/dialogs.py`는 기존 import 경로를 유지하는
+facade이며 실제 구현은 각각 `reporting_core/`, `qt_gui/page_views/`,
+`qt_gui/dialog_views/`에 있습니다.
+
+`MainWindow`는 애플리케이션 셸, 탐색과 공통 상태를 소유합니다. 프로젝트, 계정,
+보안, 진단, 증적, 라이브러리, 보고서와 관리 작업의 조정 로직은
+`qt_gui/window_workflows/`에 분리되어 있습니다. 기능 모듈은 facade를 역으로
+import하지 않으며, 바깥 계층에서 안쪽 계층으로만 의존합니다.
+
 프로젝트 변경은 프로젝트 단위 잠금 안에서 수행됩니다. 취약점 편집은 `finding.json`, `procedure.json`, 증적 manifest와 연결을 하나의 편집 단위로 취급하며 실패 시 이전 내용을 복구합니다. 편집창에서 새로 고른 증적은 저장 전까지 임시 상태로 유지됩니다. 재검증 결과는 `retests.json`의 독립 이력이며 취약점 업무 상태를 자동으로 덮어쓰지 않습니다. 삭제가 필요한 업무는 `archive/` 보관과 복구로 처리합니다.
 
 SQLite 지식 DB는 버전형 템플릿만 저장합니다. 템플릿을 프로젝트 취약점에 적용하면 문구를 복사하고 `template.id`와 `template.version`을 기록해 과거 보고서가 이후 템플릿 변경에 영향을 받지 않게 합니다.
@@ -69,9 +81,9 @@ CSV/Markdown       PPT-ready bundle
 
 ## 호환성
 
-- Python 3.9 이상
+- Python 3.10 이상
 - Windows, macOS
-- Python 표준 라이브러리만 사용
+- 데스크톱 UI는 PySide6, 암호화는 cryptography를 사용
 - 경로는 내부적으로 `pathlib`로 처리
 - JSON과 Markdown은 UTF-8
 - Excel 호환을 위해 CSV는 UTF-8 BOM으로 생성

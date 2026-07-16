@@ -1,5 +1,7 @@
 # 언어팩 개발
 
+[English](LOCALIZATION_EN.md) | **한국어**
+
 Otter의 UI 언어와 보고서 언어는 서로 독립적입니다.
 
 - **UI 언어**는 `QSettings`의 `appearance/uiLanguage`에 저장되고 프로그램을 다시 시작할 때 적용됩니다.

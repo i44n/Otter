@@ -1,71 +1,70 @@
-# GUI design system
+# GUI 디자인 시스템
 
-The desktop UI uses PySide6 and keeps all project and knowledge persistence
-behind `GuiController`. Views must not read or write JSON, SQLite, or evidence
-files directly.
+[English](GUI_DESIGN_EN.md) | **한국어**
 
-## Information architecture
+데스크톱 UI는 PySide6를 사용하며 프로젝트와 지식 데이터의 저장 작업은 모두
+`GuiController` 뒤에 둡니다. 화면은 JSON, SQLite 또는 증적 파일을 직접 읽거나
+쓰지 않습니다.
 
-The main window has a persistent project header, a left navigation rail, and a
-single page workspace. The primary workflow is:
+## 정보 구조
 
-1. Open or create a project.
-2. Review project health on the dashboard.
-3. Register targets before recording findings and evidence.
-4. Filter the full-width findings table and open one in the same page stack.
-5. Read its impact, remediation, technical details, procedure, retest timeline,
-   and evidence state in a full-width detail view, then return without losing
-   list filters, sorting, selection, or scroll context.
-6. Create, edit, retest, or archive it without losing list context.
+메인 창은 항상 보이는 프로젝트 헤더, 왼쪽 탐색 메뉴와 단일 페이지 작업공간으로
+구성됩니다. 기본 작업 흐름은 다음과 같습니다.
 
-Navigation is grouped by workspace, assessment resources, output, and
-management. Targets are a first-class workspace page rather than a Settings tab.
-Group labels use a compact tinted Level 1 treatment; clickable Level 2 items use
-larger indented text and reserve the primary background for the active page.
+1. 프로젝트를 열거나 새로 만듭니다.
+2. 대시보드에서 프로젝트 상태를 확인합니다.
+3. 취약점과 증적을 기록하기 전에 진단 대상을 등록합니다.
+4. 전체 너비의 취약점 표를 검색·필터링하고 같은 페이지 스택에서 상세 화면을 엽니다.
+5. 전체 너비의 상세 화면에서 영향, 조치방안, 기술 상세, 재현 절차, 재검증 이력과
+   증적 상태를 확인합니다. 목록으로 돌아가도 필터, 정렬, 선택과 스크롤 위치를
+   유지합니다.
+6. 목록 문맥을 잃지 않고 취약점을 생성, 수정, 재검증 또는 보관합니다.
 
-## Visual tokens
+탐색 메뉴는 작업공간, 진단 리소스, 산출물과 관리 영역으로 나눕니다. 진단 대상은
+설정 탭이 아니라 독립된 작업공간 페이지입니다. 그룹 이름은 작고 옅은 Level 1
+스타일을 사용하고, 클릭 가능한 Level 2 항목은 더 큰 들여쓰기 글자를 사용합니다.
+주요 배경색은 현재 선택된 페이지만 표시합니다.
 
-- Spacing: 4, 8, 12, 16, 24, and 32 px.
-- Radius: 8 px controls, 12 px cards, 16 px large surfaces.
-- Light background: `#F4F6F8`; surface: `#FFFFFF`; border: `#DDE2E8`.
-- Primary: `#2563EB`; text: `#172033`; muted text: `#667085`.
-- Critical: `#7F1D1D`; High: `#DC2626`; Medium: `#D97706`;
-  Low: `#2563EB`; Informational: `#667085`.
-- Windows UI font fallback: `Pretendard`, `Segoe UI`, sans-serif.
+## 시각 토큰
 
-Use object names and dynamic properties from `qt_gui.theme`; do not add
-one-off inline styles in page code unless the value is data-dependent, such as
-a severity badge.
+- 간격: 4, 8, 12, 16, 24, 32px
+- 모서리: 컨트롤 8px, 카드 12px, 큰 표면 16px
+- 밝은 배경: `#F4F6F8`, 표면: `#FFFFFF`, 테두리: `#DDE2E8`
+- 주요 색상: `#2563EB`, 본문: `#172033`, 보조 본문: `#667085`
+- Critical: `#7F1D1D`, High: `#DC2626`, Medium: `#D97706`,
+  Low: `#2563EB`, Informational: `#667085`
+- Windows UI 글꼴 fallback: `Pretendard`, `Segoe UI`, sans-serif
 
-## Interaction rules
+페이지 코드에 일회성 인라인 스타일을 추가하지 말고 `qt_gui.theme`의 object name과
+동적 속성을 사용합니다. 심각도 배지처럼 값이 데이터에 따라 달라질 때만 예외로
+처리합니다.
 
-- One primary action per page.
-- Destructive actions require confirmation or an archive reason.
-- Validation errors are shown in context and preserve entered values.
-- Successful operations use a temporary toast; background operations use the
-  shared busy indicator.
-- Tables support keyboard selection, sorting, text search, and filters.
-- Empty states explain the next useful action.
-- Evidence classification controls contain asset properties only. Finding,
-  technical-detail, procedure, and retest associations live in a separate
-  usage section with per-link caption and placement controls.
-- The evidence workspace uses a sortable, searchable full-width table and a
-  full-width detail view with bounded image or text preview. It must not use a
-  finding combo box that visually resembles an evidence classification field;
-  finding selection appears only when creating or dropping an asset globally.
-- Finding and evidence pages use list-to-detail page stacks rather than narrow
-  master-detail splitters. Escape and Alt+Left return to the preserved list.
-- Evidence selectors inside finding, procedure, and retest editors stage link
-  caption and placement changes until the parent editor is saved.
-- Minimum supported logical viewport is 1024 by 600. Below 1280 pixels wide the
-  shell uses compact navigation and top-bar labels while preserving every action.
-- Hide low-priority table columns in compact mode instead of shrinking primary
-  content below its usable width.
+## 상호작용 규칙
 
-## Qt application boundary
+- 페이지마다 주요 동작은 하나만 둡니다.
+- 파괴적 동작에는 확인 또는 보관 사유가 필요합니다.
+- 검증 오류는 입력 문맥에서 표시하고 사용자가 입력한 값을 유지합니다.
+- 성공한 작업은 임시 toast로, 백그라운드 작업은 공통 busy indicator로 표시합니다.
+- 표는 키보드 선택, 정렬, 텍스트 검색과 필터를 지원합니다.
+- 빈 상태에서는 다음에 수행할 수 있는 동작을 안내합니다.
+- 증적 분류 컨트롤에는 자산 속성만 둡니다. 취약점 본문, 기술 상세, 절차와 재검증
+  연결은 별도 사용처 영역에서 링크별 caption과 placement로 관리합니다.
+- 증적 작업공간은 검색·정렬 가능한 전체 너비 표와 크기가 제한된 이미지 또는
+  텍스트 미리보기를 포함한 전체 너비 상세 화면을 사용합니다. 증적 분류처럼 보이는
+  취약점 선택 콤보박스를 두지 않으며, 전역에서 자산을 추가하거나 끌어놓을 때만
+  취약점을 선택합니다.
+- 취약점과 증적 화면은 좁은 master-detail splitter 대신 목록-상세 페이지 스택을
+  사용합니다. `Escape`와 `Alt+Left`는 이전 목록 문맥으로 돌아갑니다.
+- 취약점, 절차와 재검증 편집기의 증적 선택기는 상위 편집창을 저장할 때까지 링크의
+  caption과 placement 변경을 임시 상태로 유지합니다.
+- 지원하는 최소 논리 viewport는 1024×600입니다. 너비가 1280px 미만이면 모든
+  동작을 유지하면서 탐색 메뉴와 상단 표시를 compact 모드로 전환합니다.
+- 주요 콘텐츠의 사용 가능한 너비를 지나치게 줄이지 말고 compact 모드에서 우선순위가
+  낮은 표 열을 숨깁니다.
 
-The Tkinter implementation was removed after the Qt UI reached controller-level
-parity, passed offscreen smoke tests and a real Windows rendering smoke test,
-and preserved the CLI and project file regression suite. The CLI launches
-`webpentestkit.qt_gui` directly, while `webpentestkit.gui` contains only the
-toolkit-independent `GuiController` service boundary.
+## Qt 애플리케이션 경계
+
+Qt UI가 controller 수준의 기능 일치, offscreen smoke test와 실제 Windows 렌더링
+검증을 통과하고 CLI 및 프로젝트 파일 회귀 테스트를 유지한 뒤 Tkinter 구현을
+제거했습니다. CLI는 `webpentestkit.qt_gui`를 직접 실행하며,
+`webpentestkit.gui`에는 GUI toolkit과 무관한 `GuiController` 서비스 경계만 둡니다.

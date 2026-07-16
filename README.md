@@ -196,12 +196,17 @@ The current public development version is `0.1.0b1`.
 
 ## Documentation
 
-- [User guide (English)](docs/USER_GUIDE_EN.md)
-- [사용자 가이드 (한국어)](docs/USER_GUIDE.md)
-- [Secure projects and threat model](docs/SECURE_PROJECTS.md)
-- [Procedure and retest model](docs/PROCEDURES.md)
-- [Localization](docs/LOCALIZATION.md)
-- [Development guide](docs/DEVELOPMENT.md)
+- [Documentation index / 문서 목록](docs/README.md)
+
+| Topic | English | Korean |
+|---|---|---|
+| User guide | [English](docs/USER_GUIDE_EN.md) | [한국어](docs/USER_GUIDE.md) |
+| GUI design system | [English](docs/GUI_DESIGN_EN.md) | [한국어](docs/GUI_DESIGN.md) |
+| Secure projects and threat model | [English](docs/SECURE_PROJECTS_EN.md) | [한국어](docs/SECURE_PROJECTS.md) |
+| Procedure and retest model | [English](docs/PROCEDURES_EN.md) | [한국어](docs/PROCEDURES.md) |
+| Localization | [English](docs/LOCALIZATION_EN.md) | [한국어](docs/LOCALIZATION.md) |
+| Development guide | [English](docs/DEVELOPMENT_EN.md) | [한국어](docs/DEVELOPMENT.md) |
+
 - [Architecture](DESIGN.md)
 - [Changelog](CHANGELOG.md)
 
