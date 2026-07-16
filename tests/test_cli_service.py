@@ -3,6 +3,9 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -26,6 +29,19 @@ class CliServiceIntegrationTest(unittest.TestCase):
             build_parser().parse_args(["--version"])
         self.assertEqual(raised.exception.code, 0)
         self.assertEqual(output.getvalue().strip(), f"Otter {__version__}")
+
+    def test_cli_help_is_printable_in_windows_cp949(self) -> None:
+        environment = os.environ.copy()
+        environment["PYTHONIOENCODING"] = "cp949"
+        result = subprocess.run(
+            [sys.executable, "otter.py", "--help"],
+            cwd=Path(__file__).resolve().parents[1],
+            env=environment,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr.decode("cp949"))
+        self.assertIn("Otter -", result.stdout.decode("cp949"))
 
     def test_cli_uses_service_layer_for_complete_record(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

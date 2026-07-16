@@ -1,5 +1,7 @@
 # Otter 개발 가이드
 
+[English](DEVELOPMENT_EN.md) | **한국어**
+
 ## 계층 구조
 
 ```text
@@ -8,10 +10,15 @@ CLI / PySide6 GUI
         v
 ProjectService / KnowledgeService
         |
+        +-- project_services/* -> 기능별 프로젝트 업무 규칙
         +-- ProjectRepository -> ProjectStorage -> 폴더 또는 암호화 컨테이너
         +-- CredentialVaultService -> 암호화 계정 금고
         +-- KnowledgeRepository -> SQLite 취약점 지식
-        +-- reporting.py -> 검증/보고서/PPT 번들
+        +-- reporting.py facade -> reporting_core/*
+                                      +-- 검증
+                                      +-- 공통 보고서 뷰
+                                      +-- Markdown/CSV
+                                      +-- PPT 번들
 ```
 
 GUI는 JSON이나 SQLite를 직접 읽거나 쓰지 않습니다. `GuiController`를 통해 서비스 계층만 호출하며, 프로젝트 생성과 변경은 모두 `ProjectService`가 담당합니다.
@@ -26,13 +33,31 @@ GUI는 JSON이나 SQLite를 직접 읽거나 쓰지 않습니다. `GuiController
 - `encrypted_project.py`: `.wpkproj` 봉투 암호화, 잠금, 백업과 복원
 - `credential_vault.py`: 계정 모델의 암호화 저장과 수명주기
 - `security_crypto.py`: Argon2id 파라미터 검증과 복구키 공통 처리
-- `services.py`: 프로젝트, 대상, 취약점, 증적, 보관, 보고서 업무 규칙
+- `services.py`: 기존 호출 경로를 유지하는 `ProjectService` facade
+- `project_services/`: 수명주기, 보안, 대상, 취약점, 증적 연결, 절차, 재검증, 증적, 보관과 보고서 업무 규칙
+- `reporting.py`: 기존 보고서 함수 import를 유지하는 facade
+- `reporting_core/`: 검증, 언어별 문구, 공통 보고서 뷰, Markdown/CSV와 PPT 번들 생성
 - `locking.py`: 스레드·프로세스 간 프로젝트 단위 재진입 잠금
 - `schema_versions.py`: 프로젝트 문서의 현재 스키마 버전 검사
 - `archives.py`: 대상·취약점·증적 보관과 복구
 - `knowledge.py`: 버전형 SQLite 취약점 템플릿
 - `gui/controller.py`: Qt 화면과 서비스 계층 사이의 상태 경계
-- `qt_gui/`: PySide6 앱 셸, 화면, 다이얼로그, 테이블 모델, 테마와 작업 실행기
+- `qt_gui/pages.py`, `qt_gui/dialogs.py`: 기존 GUI import를 유지하는 facade
+- `qt_gui/page_views/`: 대시보드, 대상, 취약점, 증적, 라이브러리, 보고서, 계정, 보관과 설정 화면
+- `qt_gui/dialog_views/`: 프로젝트, 대상, 취약점, 증적, 절차·재검증, 라이브러리와 계정·보안 다이얼로그
+- `qt_gui/window_workflows/`: `MainWindow`가 노출하는 기능별 사용자 작업 조정 로직
+- `qt_gui/main_window.py`: 앱 셸, 탐색, 반응형 레이아웃과 공통 상태·오류 처리
+- `qt_gui/models.py`, `qt_gui/widgets.py`, `qt_gui/theme.py`: 테이블 모델, 공통 위젯과 시각 정책
+
+### Import 경계
+
+- 외부 코드와 테스트는 `services.py`, `reporting.py`, `qt_gui/pages.py`,
+  `qt_gui/dialogs.py`의 안정적인 facade를 사용합니다.
+- 기능 구현은 facade를 역으로 import하지 않고 저장소 안쪽 계층 또는 같은 기능의
+  하위 모듈에만 의존합니다.
+- GUI workflow는 페이지와 다이얼로그를 조정하지만 파일, SQLite와 암호화
+  컨테이너를 직접 수정하지 않습니다.
+- 새 기능은 기존 대형 facade에 구현하지 않고 해당 기능 모듈에 추가합니다.
 
 언어팩 형식과 UI/보고서 언어 분리 규칙은 [LOCALIZATION.md](LOCALIZATION.md)를 참고합니다.
 
@@ -56,7 +81,7 @@ SQLite에는 템플릿 ID와 버전, 제목, 설명, 영향, 조치방안, CWE, 
 
 ```powershell
 python -m unittest discover -s tests -v
-python -m compileall -q webpentestkit tests examples
+python -m compileall -q webpentestkit tests examples tools
 python examples\create_sample.py --force
 python otter.py validate --project examples\generated\acme-shop\project
 ```
