@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Otter Synthetic Assessment Evidence</title>
+  <style>
+    :root {
+      --bg:#0b1220; --panel:#111a2b; --panel2:#162236; --line:#2b3a52;
+      --ink:#e6edf7; --muted:#91a2bb; --blue:#5aa7ff; --cyan:#57d3d0;
+      --red:#ff6b6b; --green:#4bd38a; --amber:#ffbd5b; --code:#c9d6e8;
+    }
+    * { box-sizing:border-box; }
+    html, body { margin:0; width:100%; height:100%; overflow:hidden; background:var(--bg); }
+    body { color:var(--ink); font-family:"Segoe UI","Malgun Gothic",sans-serif; }
+    button, input { font:inherit; }
+    .app { width:1600px; height:900px; display:grid; grid-template-rows:48px 54px 1fr 30px; background:var(--bg); }
+    .menubar { display:flex; align-items:center; padding:0 18px; background:#09101d; border-bottom:1px solid #223047; }
+    .brand { font-weight:800; letter-spacing:.04em; margin-right:28px; }
+    .brand i { display:inline-grid; place-items:center; width:24px; height:24px; margin-right:8px; border-radius:5px; background:var(--blue); color:#07101d; font-style:normal; }
+    .tabs { display:flex; align-self:stretch; }
+    .tab { min-width:92px; display:grid; place-items:center; color:#8fa0b9; font-size:12px; border-left:1px solid transparent; border-right:1px solid transparent; }
+    .tab.active { color:#fff; background:#111a2b; border-color:#223047; box-shadow:inset 0 -2px var(--blue); }
+    .lab { margin-left:auto; font:11px "Cascadia Mono","Consolas",monospace; color:var(--amber); }
+    .casebar { display:flex; align-items:center; gap:14px; padding:0 18px; background:#111a2b; border-bottom:1px solid var(--line); }
+    .case-id { padding:5px 9px; border:1px solid #376ca8; border-radius:4px; color:#9dcaff; background:#122844; font:700 12px "Cascadia Mono","Consolas",monospace; }
+    .case-title { min-width:0; flex:1; }
+    .case-title strong { display:block; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .case-title span { display:block; margin-top:3px; color:var(--muted); font:10px "Cascadia Mono","Consolas",monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .chip { padding:5px 9px; border-radius:4px; border:1px solid #34445c; color:#aab8cc; font-size:10px; }
+    .chip.fail { color:#ffadad; border-color:#7e3d49; background:#291722; }
+    .chip.pass { color:#89e8b6; border-color:#2c6b4b; background:#10281e; }
+    .workspace { min-height:0; padding:12px; background:#0d1524; }
+    .footer { display:flex; align-items:center; justify-content:space-between; padding:0 14px; border-top:1px solid #223047; background:#09101d; color:#71839d; font:10px "Cascadia Mono","Consolas",monospace; }
+    .raw-grid { height:100%; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .editor { min-width:0; min-height:0; display:grid; grid-template-rows:38px 1fr; border:1px solid var(--line); background:#0b1322; }
+    .editor-head { display:flex; align-items:center; justify-content:space-between; padding:0 12px; background:#162236; border-bottom:1px solid var(--line); font:11px "Cascadia Mono","Consolas",monospace; }
+    .editor-head span:last-child { color:var(--muted); }
+    pre { margin:0; min-height:0; padding:18px 20px; overflow:hidden; white-space:pre-wrap; word-break:break-word; color:var(--code); font:13px/1.55 "Cascadia Mono","Consolas",monospace; tab-size:2; }
+    .request pre::first-line { color:#80bfff; }
+    .response.ok .editor-head { box-shadow:inset 3px 0 var(--green); }
+    .response.fail .editor-head { box-shadow:inset 3px 0 var(--red); }
+    .status-line { color:var(--green); }
+    .terminal { height:100%; display:grid; grid-template-columns:minmax(0,1.7fr) minmax(350px,.7fr); gap:10px; }
+    .terminal-window { min-height:0; border:1px solid #34445c; background:#080e18; display:grid; grid-template-rows:34px 1fr; }
+    .terminal-title { display:flex; align-items:center; justify-content:space-between; padding:0 12px; background:#172033; border-bottom:1px solid #34445c; color:#aebbd0; font:11px "Cascadia Mono","Consolas",monospace; }
+    .terminal pre { color:#b9c8dc; font-size:12px; }
+    .log-info { color:#58b8ff; } .log-warn { color:#ffbd5b; } .log-error { color:#ff7b86; }
+    .trace-pane { border:1px solid var(--line); background:#111a2b; padding:18px; }
+    .trace-pane h2 { margin:0 0 6px; font-size:16px; }
+    .trace-pane p { margin:0 0 22px; color:var(--muted); font-size:11px; line-height:1.55; }
+    .kv { display:grid; grid-template-columns:112px 1fr; font:11px/1.45 "Cascadia Mono","Consolas",monospace; border-top:1px solid var(--line); }
+    .kv div { padding:10px 6px; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
+    .kv div:nth-child(odd) { color:#7f91aa; }
+    .browser { height:100%; display:grid; grid-template-rows:40px 1fr 255px; border:1px solid #34445c; background:#f3f5f8; color:#172033; }
+    .browser-bar { display:flex; align-items:center; gap:10px; padding:0 12px; background:#e8ebf0; border-bottom:1px solid #c7ced8; }
+    .traffic { color:#a5acb7; letter-spacing:.13em; }
+    .address { flex:1; padding:6px 12px; border:1px solid #c7ced8; border-radius:4px; background:#fff; color:#465265; font:11px "Cascadia Mono","Consolas",monospace; }
+    .page { padding:28px 34px; overflow:hidden; background:#f8fafc; }
+    .page-nav { margin:-28px -34px 24px; padding:14px 34px; display:flex; justify-content:space-between; background:#12233d; color:#fff; }
+    .page-nav strong { font-size:14px; } .page-nav span { color:#b7c8df; font-size:11px; }
+    .page h1 { margin:0 0 8px; font-size:24px; }
+    .page .sub { color:#69778b; font-size:12px; margin-bottom:20px; }
+    .record { border:1px solid #d5dbe4; background:#fff; border-radius:6px; overflow:hidden; }
+    .record-head { display:flex; justify-content:space-between; padding:13px 16px; background:#f0f4f9; border-bottom:1px solid #d5dbe4; font-size:12px; }
+    .record-body { display:grid; grid-template-columns:150px 1fr; font:12px/1.45 "Cascadia Mono","Consolas",monospace; }
+    .record-body div { padding:9px 14px; border-bottom:1px solid #edf0f4; }
+    .record-body div:nth-child(odd) { color:#68778b; background:#fafbfd; }
+    .devtools { min-height:0; display:grid; grid-template-columns:1.15fr 1fr; background:#151a22; color:#d8dee9; border-top:1px solid #3a4350; }
+    .dev-pane { min-width:0; overflow:hidden; border-right:1px solid #3a4350; }
+    .dev-head { padding:8px 12px; color:#aeb8c6; border-bottom:1px solid #3a4350; font-size:10px; }
+    .dev-pane pre { font-size:10px; line-height:1.45; padding:12px; }
+    .identity { height:100%; display:grid; grid-template-columns:330px 1fr; gap:10px; }
+    .identity-side { border:1px solid var(--line); background:#111a2b; padding:20px; }
+    .identity-side h2 { margin:0 0 8px; font-size:17px; }
+    .identity-side p { margin:0 0 20px; color:var(--muted); font-size:11px; line-height:1.6; }
+    .claim { margin:10px 0; padding:11px 12px; border:1px solid var(--line); background:#0d1524; font:11px/1.5 "Cascadia Mono","Consolas",monospace; }
+    .claim b { color:#7fb8ff; }
+    .token { border:1px solid var(--line); background:#0b1322; display:grid; grid-template-rows:38px 1fr; }
+    .token pre { color:#d4deed; font-size:12px; }
+    .hl-red { color:#ff8790; } .hl-green { color:#63df9c; } .hl-blue { color:#75baff; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="menubar">
+      <div class="brand"><i>O</i>OTTER INTERCEPT LAB</div>
+      <div class="tabs"><div class="tab">Target</div><div class="tab active">Evidence</div><div class="tab">Repeater</div><div class="tab">Logger</div></div>
+      <div class="lab">SYNTHETIC LAB DATA · AUTHORIZED TEST</div>
+    </header>
+    <div class="casebar">
+      <div class="case-id" id="case-id"></div>
+      <div class="case-title"><strong id="case-title"></strong><span id="case-endpoint"></span></div>
+      <div class="chip" id="case-step"></div><div class="chip" id="case-state"></div>
+    </div>
+    <main class="workspace" id="workspace"></main>
+    <footer class="footer"><span id="footer-left"></span><span>capture 1600×900 · sanitized · report-ready</span></footer>
+  </div>
+  <script>
+    const q = new URLSearchParams(location.search);
+    const get = (key, fallback="-") => q.get(key) || fallback;
+    const lines = value => String(value || "-").replaceAll("\\n", "\n");
+    const esc = value => String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+    const id = get("id");
+    const mode = get("mode", "api");
+    const kind = get("kind", "procedure");
+    const request = lines(get("request"));
+    const response = lines(get("response"));
+    const endpoint = get("endpoint");
+    const passed = kind === "retest" || mode === "retest";
+    const stage = kind === "procedure" ? `PROCEDURE ${get("step")}/${get("steps")}` : kind === "retest" ? "RETEST" : "FINAL RESULT";
+
+    document.getElementById("case-id").textContent = id;
+    document.getElementById("case-title").textContent = get("title");
+    document.getElementById("case-endpoint").textContent = endpoint;
+    document.getElementById("case-step").textContent = stage;
+    const state = document.getElementById("case-state");
+    state.textContent = passed ? "VERIFIED / PASS" : `${get("severity").toUpperCase()} / ${get("status").toUpperCase()}`;
+    state.classList.add(passed ? "pass" : "fail");
+    document.getElementById("footer-left").textContent = `${id} · ${get("library")} · ${get("actor")}`;
+
+    function httpRequest() {
+      const first = endpoint.match(/^(GET|POST|PUT|PATCH|DELETE)\s+(.+)$/i);
+      const method = first ? first[1].toUpperCase() : "POST";
+      const path = first ? first[2] : endpoint;
+      return `${method} ${path} HTTP/1.1\nHost: ${path.includes("admin") ? "admin.northstar.test" : path.includes("payment") ? "api.northstar.test" : "portal.northstar.test"}\nAuthorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI...\nX-Otter-Trace: ${id.toLowerCase()}-e2e-${get("step", "result")}\nContent-Type: application/json\nAccept: application/json\n\n${request}`;
+    }
+
+    function httpResponse() {
+      const explicit = response.match(/HTTP\/1\.1\s+([^\n]+)/i);
+      const status = explicit ? explicit[1] : passed ? "403 Forbidden" : "200 OK";
+      return `HTTP/1.1 ${status}\nDate: Thu, 16 Jul 2026 05:22:41 GMT\nContent-Type: application/json; charset=utf-8\nX-Request-Id: req-${id.replace("W-", "").padStart(4, "0")}-${get("step", "00")}\nCache-Control: no-store\n\n${response}`;
+    }
+
+    function rawEvidence() {
+      const responseClass = passed ? "ok" : "fail";
+      return `<div class="raw-grid">
+        <section class="editor request"><div class="editor-head"><span>REQUEST</span><span>Pretty · Raw · Hex</span></div><pre>${esc(httpRequest())}</pre></section>
+        <section class="editor response ${responseClass}"><div class="editor-head"><span>RESPONSE</span><span>${passed ? "403 · 184 bytes" : "200 · 1.42 KB"}</span></div><pre>${esc(httpResponse())}</pre></section>
+      </div>`;
+    }
+
+    function logEvidence() {
+      const now = "2026-07-16T14:22:41.392+09:00";
+      const raw = response.split("\n").map((line, index) => `${now.slice(0, 20)}${392 + index * 17}+09:00 ${index === 0 ? "INFO " : index === 1 ? "WARN " : "ERROR"} [http-nio-8443-exec-${7 + index}] trace=${id.toLowerCase()}-e2e ${line}`).join("\n");
+      return `<div class="terminal">
+        <section class="terminal-window"><div class="terminal-title"><span>otter@northstar-staging:/var/log/security</span><span>tail -f application.log</span></div><pre>$ rg "${esc(id.toLowerCase())}-e2e" application.log\n\n${esc(raw)}\n\n<span class="log-warn">authorization boundary observation linked to ${esc(id)}</span>\n<span class="log-info">evidence hash: sha256:7d91b9f4... synthetic</span></pre></section>
+        <aside class="trace-pane"><h2>Trace correlation</h2><p>요청 ID와 서버 로그의 권한 판단 및 상태 변화를 동일 타임라인으로 확인한 캡처입니다.</p><div class="kv">
+          <div>trace.id</div><div>${esc(id.toLowerCase())}-e2e</div><div>endpoint</div><div>${esc(endpoint)}</div><div>actor</div><div>${esc(get("actor"))}</div><div>request</div><div>${esc(request).replaceAll("\n", "<br>")}</div><div>observed</div><div>${esc(get("observed"))}</div>
+        </div></aside>
+      </div>`;
+    }
+
+    function browserEvidence(admin=false) {
+      const title = admin ? "Operations Control Plane" : "Northstar Customer Portal";
+      return `<section class="browser">
+        <div class="browser-bar"><span class="traffic">● ● ●</span><div class="address">https://${admin ? "admin" : "portal"}.northstar.test/${esc(endpoint.replace(/^\w+\s+/, ""))}</div></div>
+        <div class="page"><div class="page-nav"><strong>${title}</strong><span>${esc(get("actor"))} · STAGING</span></div><h1>${esc(get("title"))}</h1><div class="sub">격리된 테스트 계정으로 현재 객체와 처리 결과를 확인했습니다.</div><div class="record"><div class="record-head"><strong>Observed application state</strong><span>${passed ? "ACCESS DENIED" : "REQUEST COMPLETED"}</span></div><div class="record-body">
+          <div>Endpoint</div><div>${esc(endpoint)}</div><div>Input</div><div>${esc(request).replaceAll("\n", " · ")}</div><div>Rendered state</div><div>${esc(response).replaceAll("\n", " · ")}</div><div>Expected</div><div>${esc(get("expected"))}</div>
+        </div></div></div>
+        <div class="devtools"><div class="dev-pane"><div class="dev-head">Network · Fetch/XHR · Preserve log</div><pre>${esc(httpRequest())}</pre></div><div class="dev-pane"><div class="dev-head">Response / Console</div><pre>${esc(httpResponse())}\n\n&gt; window.__OTTER_EVIDENCE__\n{ finding: "${esc(id)}", captured: true }</pre></div></div>
+      </section>`;
+    }
+
+    function identityEvidence() {
+      return `<div class="identity"><aside class="identity-side"><h2>Session &amp; claims</h2><p>클라이언트 표시가 아니라 검증된 토큰 클레임과 서버 권한 결과를 대조합니다.</p><div class="claim"><b>subject</b><br>partner.choi</div><div class="claim"><b>role</b><br>${esc(get("actor"))}</div><div class="claim"><b>scope</b><br>${esc(request).replaceAll("\n", "<br>")}</div><div class="claim"><b>policy result</b><br><span class="hl-red">${esc(response).replaceAll("\n", "<br>")}</span></div></aside>
+        <section class="token"><div class="editor-head"><span>DECODED TOKEN / SERVER CONTEXT</span><span>signature valid · RS256</span></div><pre><span class="hl-blue">HEADER</span>\n{\n  "alg": "RS256",\n  "typ": "JWT",\n  "kid": "northstar-staging-2026-07"\n}\n\n<span class="hl-blue">PAYLOAD</span>\n{\n  "sub": "partner.choi",\n  "role": "${esc(get("actor"))}",\n  "tenant": "TENANT-A",\n  "scope": "settlement:read",\n  "iss": "https://id.northstar.test",\n  "aud": "northstar-admin"\n}\n\n<span class="hl-red">SERVER OBSERVATION</span>\n${esc(response)}\n\n<span class="hl-green">CAPTURE</span>\nrequestId=${esc(id.toLowerCase())}-identity-${get("step", "01")}\nexternalNetwork=false\nsyntheticData=true</pre></section></div>`;
+    }
+
+    let content;
+    if (mode === "logs") content = logEvidence();
+    else if (mode === "browser") content = browserEvidence(false);
+    else if (mode === "admin") content = browserEvidence(true);
+    else if (mode === "identity") content = identityEvidence();
+    else content = rawEvidence();
+    document.getElementById("workspace").innerHTML = content;
+  </script>
+</body>
+</html>

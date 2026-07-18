@@ -1,4 +1,18 @@
 {
+  "keys": {
+    "accessibility.notification": "Notification",
+    "accessibility.backgroundTask": "Background task progress",
+    "evidence.classification": "Evidence classification",
+    "evidence.classification.all": "All evidence classifications",
+    "common.save": "Save",
+    "common.cancel": "Cancel",
+    "nav.group.sharedLibraries": "Shared libraries",
+    "table.id": "ID",
+    "table.evidence.reference": "Evidence ID",
+    "table.findings.deliverableEvidence": "Deliverable evidence",
+    "tables.visibleCount": "{count} visible",
+    "tables.visibleTotal": "{visible} visible · {total} total"
+  },
   "sources": {
     "\n\n… 미리보기는 256 KB까지만 표시됩니다.": "\n\n… Preview is limited to 256 KB.",
     "\n입력 필드: {value0}": "\nInput field: {value0}",
@@ -60,7 +74,7 @@
     "검증 및 보고서": "Validation and reports",
     "검증 완료": "Mark verified",
     "검증 항목 {value0}개를 확인하세요.": "Review {value0} validation items.",
-    "검증·보고서": "Validation and reports",
+    "검증·보고서": "Deliverables",
     "경로": "Path",
     "계정": "Credential",
     "계정 검증 시간을 기록하고 있습니다…": "Recording credential verification time…",

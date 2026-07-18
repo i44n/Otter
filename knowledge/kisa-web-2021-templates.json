@@ -1,0 +1,824 @@
+[
+  {
+    "id": "WEB-01",
+    "version": 1,
+    "name": "버퍼 오버플로우",
+    "englishName": "Buffer Overflow",
+    "title": "버퍼 오버플로우",
+    "category": "Input Validation",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "외부에서 입력받은 문자열이나 길이 값을 신뢰하여 할당된 버퍼의 경계를 넘어 읽기 또는 쓰기가 발생할 수 있습니다. 웹 입력 지점뿐 아니라 네이티브 모듈, 이미지·문서 파서와 연동 라이브러리까지 경계 검사가 필요합니다.",
+    "impact": "비정상 종료와 서비스 거부가 발생할 수 있으며, 메모리 손상 조건에 따라 민감정보 노출, 인증 우회 또는 임의 코드 실행으로 확대될 수 있습니다.",
+    "remediation": "모든 입력 길이와 산술 연산을 서버 측에서 검증하고 메모리 안전 API와 언어를 우선 사용하며 관련 런타임과 라이브러리를 최신 상태로 유지합니다.",
+    "remediationDetail": [
+      "프로토콜·필드별 최대 길이를 정의하고 클라이언트 제한과 별개로 서버에서 강제합니다.",
+      "복사 전 목적 버퍼 크기, 종료 문자, 정수 오버플로우와 음수 길이를 함께 검증합니다.",
+      "안전한 문자열·메모리 API와 컴파일러 보호기법(ASLR, DEP/NX, stack canary)을 적용합니다.",
+      "대용량·경계값·잘못된 인코딩을 포함한 퍼징과 회귀 테스트를 수행합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.645-646 (PDF pp.653-654): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-120: https://cwe.mitre.org/data/definitions/120.html",
+      "OWASP Input Validation Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-119", "CWE-120"],
+    "tags": ["BO", "Buffer Overflow", "KISA-WEB-2021", "Memory Safety"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-02",
+    "version": 1,
+    "name": "포맷스트링",
+    "englishName": "Format String",
+    "title": "포맷스트링",
+    "category": "Input Validation",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "사용자 입력이 printf 계열 함수나 로깅 API의 형식 문자열로 해석되어 메모리 내용 조회·변경 또는 예외를 유발할 수 있습니다. 입력값은 형식 문자열이 아니라 데이터 인자로만 전달되어야 합니다.",
+    "impact": "프로세스 메모리와 주소 정보가 노출되거나 서비스가 중단될 수 있고, 쓰기 지정자가 악용되면 메모리 변조와 코드 실행으로 이어질 수 있습니다.",
+    "remediation": "형식 문자열을 상수로 고정하고 외부 입력을 별도 인자로 전달하며 정적 분석과 컴파일러 경고로 위험 호출을 차단합니다.",
+    "remediationDetail": [
+      "printf(userInput) 대신 printf(\"%s\", userInput)처럼 형식 문자열을 코드에 고정합니다.",
+      "로깅·국제화·템플릿 API에서도 외부 입력이 포맷 정의로 사용되지 않게 합니다.",
+      "포맷 지정자와 인자 수·자료형 불일치를 컴파일러 경고와 SAST 규칙으로 검출합니다.",
+      "%n, 폭 지정자, 위치 인자 등 위험 패턴을 포함한 경계 테스트를 수행합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.647-648 (PDF pp.655-656): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-134: https://cwe.mitre.org/data/definitions/134.html",
+      "SEI CERT FIO30-C: https://wiki.sei.cmu.edu/confluence/display/c/FIO30-C.+Exclude+user+input+from+format+strings"
+    ],
+    "cwes": ["CWE-134"],
+    "tags": ["FS", "Format String", "KISA-WEB-2021", "Memory Safety"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-03",
+    "version": 1,
+    "name": "LDAP 인젝션",
+    "englishName": "LDAP Injection",
+    "title": "LDAP 인젝션",
+    "category": "Injection",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "사용자 입력이 적절한 이스케이프나 구조화 없이 LDAP 검색 필터 또는 DN에 결합되어 쿼리의 의미를 변경할 수 있습니다.",
+    "impact": "인증 우회, 디렉터리 정보 열람, 검색 범위 확대와 사용자·그룹 정보 변조가 가능할 수 있으며 디렉터리 서비스 계정 권한에 따라 피해가 커집니다.",
+    "remediation": "LDAP 필터와 DN을 문자열 연결로 만들지 말고 컨텍스트에 맞는 이스케이프 함수, 입력 허용목록과 최소 권한 서비스 계정을 적용합니다.",
+    "remediationDetail": [
+      "LDAP 필터 값과 DN 값의 서로 다른 이스케이프 규칙을 구분해 적용합니다.",
+      "속성명·연산자·검색 기준은 사용자 입력으로 선택하지 못하게 허용목록으로 제한합니다.",
+      "디렉터리 조회 계정에는 필요한 검색 베이스와 속성에 대한 최소 권한만 부여합니다.",
+      "괄호, 별표, NUL, 역슬래시와 인코딩 변형을 포함한 우회 테스트를 수행합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.649-650 (PDF pp.657-658): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-90: https://cwe.mitre.org/data/definitions/90.html",
+      "OWASP Injection Prevention Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Injection_Prevention_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-90"],
+    "tags": ["LI", "LDAP", "Injection", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-04",
+    "version": 1,
+    "name": "운영체제 명령 실행",
+    "englishName": "OS Command Injection",
+    "title": "운영체제 명령 실행",
+    "category": "Injection",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "외부 입력이 셸 명령이나 프로세스 실행 인자에 안전한 경계 없이 포함되어 공격자가 명령 구문 또는 위험 옵션을 주입할 수 있습니다.",
+    "impact": "애플리케이션 실행 계정 권한으로 파일 열람·변조, 내부망 접근, 악성코드 실행과 서비스 장악이 가능하며 권한 상승 취약점과 결합될 수 있습니다.",
+    "remediation": "가능하면 운영체제 명령 호출을 제거하고 안전한 라이브러리 API를 사용하며 불가피한 경우 실행 파일과 인자를 분리하고 엄격한 허용목록을 적용합니다.",
+    "remediationDetail": [
+      "셸을 거치지 않는 프로세스 실행 API를 사용하고 실행할 프로그램 경로를 고정합니다.",
+      "명령·옵션·파일 식별자를 허용목록으로 제한하고 메타문자 차단만으로 해결하지 않습니다.",
+      "애플리케이션 계정의 파일·네트워크·프로세스 권한을 최소화하고 컨테이너 격리를 적용합니다.",
+      "명령 구분자, 개행, 인코딩, argument injection을 포함한 변형을 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.651-652 (PDF pp.659-660): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-78: https://cwe.mitre.org/data/definitions/78.html",
+      "OWASP OS Command Injection Defense Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/OS_Command_Injection_Defense_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-78", "CWE-88"],
+    "tags": ["OC", "Command Injection", "RCE", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-05",
+    "version": 1,
+    "name": "SQL 인젝션",
+    "englishName": "SQL Injection",
+    "title": "SQL 인젝션",
+    "category": "Injection",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "사용자 입력이 매개변수화되지 않은 SQL 문자열에 결합되어 공격자가 질의 구조와 조건을 변경할 수 있습니다. 숫자·헤더·JSON·정렬 조건 등 모든 입력 채널이 대상입니다.",
+    "impact": "인증 우회, 민감정보 대량 조회, 데이터 변조·삭제와 데이터베이스 가용성 저하가 발생할 수 있고 DB 기능과 권한에 따라 운영체제 명령 실행으로 확대될 수 있습니다.",
+    "remediation": "모든 데이터 값에 Prepared Statement와 바인드 변수를 사용하고 식별자·정렬 키는 허용목록으로 제한하며 DB 계정 최소 권한과 오류 은닉을 적용합니다.",
+    "remediationDetail": [
+      "ORM 사용 여부와 무관하게 동적 문자열 연결을 제거하고 매개변수 바인딩을 강제합니다.",
+      "테이블명·열명·정렬 방향처럼 바인딩할 수 없는 요소는 서버 정의 허용목록에서 선택합니다.",
+      "애플리케이션 DB 계정에 스키마 변경·파일 접근·관리자 권한을 부여하지 않습니다.",
+      "오류 기반·UNION·Boolean·시간 지연과 2차 SQL 인젝션을 회귀 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.653-658 (PDF pp.661-666): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-89: https://cwe.mitre.org/data/definitions/89.html",
+      "OWASP SQL Injection Prevention Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-89"],
+    "tags": ["SI", "SQLi", "Database", "Injection", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-06",
+    "version": 1,
+    "name": "SSI 인젝션",
+    "englishName": "SSI Injection",
+    "title": "SSI 인젝션",
+    "category": "Injection",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "사용자 입력이 Server-Side Includes 지시문으로 저장·해석되거나 SSI가 불필요한 콘텐츠에서 활성화되어 서버 측 명령 또는 파일 포함 기능이 실행될 수 있습니다.",
+    "impact": "서버 파일 열람, 환경정보 노출, 서버 측 명령 실행과 페이지 변조가 가능하며 웹 서버 계정 권한으로 피해가 확장될 수 있습니다.",
+    "remediation": "SSI가 필요하지 않으면 비활성화하고 사용자 작성 콘텐츠가 SSI 처리기를 거치지 않게 하며 지시문 구문을 서버 측에서 거부합니다.",
+    "remediationDetail": [
+      "업로드·게시물 저장 경로에서 .shtml 등 SSI 처리 확장자와 실행 매핑을 제거합니다.",
+      "IncludesNOEXEC 등 명령 실행을 제한하는 설정을 사용하되 입력 검증을 대체하지 않습니다.",
+      "사용자 입력의 SSI 지시문 구분자와 인코딩 변형을 무해화하거나 거부합니다.",
+      "웹 서버 계정 권한과 읽을 수 있는 파일 범위를 최소화합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.659-660 (PDF pp.667-668): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-97: https://cwe.mitre.org/data/definitions/97.html",
+      "OWASP WSTG Input Validation Testing: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/"
+    ],
+    "cwes": ["CWE-97"],
+    "tags": ["SS", "SSI", "Injection", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-07",
+    "version": 1,
+    "name": "XPath 인젝션",
+    "englishName": "XPath Injection",
+    "title": "XPath 인젝션",
+    "category": "Injection",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "사용자 입력이 XPath 표현식에 문자열로 연결되어 노드 선택 조건과 논리식을 공격자가 변경할 수 있습니다.",
+    "impact": "XML 기반 인증 우회, 문서 내 민감 노드 열람, 데이터 구조 추론과 애플리케이션 로직 우회가 가능할 수 있습니다.",
+    "remediation": "변수 바인딩을 지원하는 XPath API를 사용하고 입력을 명확한 자료형과 허용목록으로 검증하며 XML 처리 계정과 데이터 범위를 제한합니다.",
+    "remediationDetail": [
+      "XPath 쿼리를 문자열 연결로 생성하지 않고 사전 컴파일·변수 바인딩 기능을 사용합니다.",
+      "식별자·열거값은 허용목록으로 제한하고 따옴표와 논리 연산자 우회에 의존하지 않습니다.",
+      "오류 메시지에서 XML 구조와 쿼리 표현식을 노출하지 않습니다.",
+      "Boolean 조건, 주석, 인코딩과 블라인드 추출 시나리오를 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.661-662 (PDF pp.669-670): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-643: https://cwe.mitre.org/data/definitions/643.html",
+      "OWASP WSTG Testing for XPath Injection: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/09-Testing_for_XPath_Injection"
+    ],
+    "cwes": ["CWE-643"],
+    "tags": ["XI", "XPath", "XML", "Injection", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-08",
+    "version": 1,
+    "name": "디렉터리 인덱싱",
+    "englishName": "Directory Indexing",
+    "title": "디렉터리 인덱싱",
+    "category": "Security Misconfiguration",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "기본 문서가 없는 디렉터리에 대해 웹 서버의 목록 표시 기능이 활성화되어 파일명, 하위 경로와 배포 산출물이 노출됩니다.",
+    "impact": "백업·설정·로그·소스 파일의 존재와 구조가 드러나 추가 공격 경로가 제공되며, 파일 접근통제까지 미흡하면 민감정보가 직접 유출될 수 있습니다.",
+    "remediation": "모든 가상 호스트와 경로에서 디렉터리 목록 기능을 비활성화하고 웹 루트의 불필요한 파일을 제거하며 개별 자원 접근통제를 적용합니다.",
+    "remediationDetail": [
+      "Apache Options Indexes, IIS Directory Browsing 등 서버별 목록 기능을 명시적으로 끕니다.",
+      "웹 루트에서 백업·압축·로그·임시·소스 관리 파일을 제거합니다.",
+      "목록 차단과 별개로 각 파일 요청에 인증·인가 규칙을 적용합니다.",
+      "대소문자, 인코딩, 별칭·가상 디렉터리와 정적 파일 서버를 포함해 점검합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.663-667 (PDF pp.671-675): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-548: https://cwe.mitre.org/data/definitions/548.html",
+      "OWASP WSTG Configuration and Deployment Management Testing: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/"
+    ],
+    "cwes": ["CWE-548"],
+    "tags": ["DI", "Directory Listing", "Misconfiguration", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-09",
+    "version": 1,
+    "name": "정보 누출",
+    "englishName": "Information Disclosure",
+    "title": "정보 누출",
+    "category": "Information Disclosure",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "오류 응답, HTML·스크립트 주석, API 응답, 헤더 또는 공개 파일을 통해 계정·경로·버전·내부 구조·개인정보 등 불필요한 정보가 노출됩니다.",
+    "impact": "공격자가 시스템 구성과 취약 구성요소를 식별하고 계정·토큰·개인정보를 획득하여 후속 침해의 정확도와 성공률을 높일 수 있습니다.",
+    "remediation": "응답 데이터 최소화, 일관된 오류 처리, 비밀정보 제거와 배포 전 산출물 검사를 적용하고 상세 진단정보는 접근통제된 서버 로그에만 기록합니다.",
+    "remediationDetail": [
+      "운영 환경에서 스택 추적, SQL, 절대 경로와 내부 호스트 정보를 사용자에게 반환하지 않습니다.",
+      "API는 업무에 필요한 필드만 직렬화하고 민감 필드는 서버 측에서 제외합니다.",
+      "소스맵·주석·백업·환경설정·저장소 메타데이터의 배포를 차단합니다.",
+      "서버 배너와 프레임워크 버전 노출을 줄이고 로그·모니터링으로 실제 오류를 추적합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.668-671 (PDF pp.676-679): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-200: https://cwe.mitre.org/data/definitions/200.html",
+      "MITRE CWE-209: https://cwe.mitre.org/data/definitions/209.html",
+      "OWASP Error Handling Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-200", "CWE-209"],
+    "tags": ["IL", "Information Disclosure", "Error Handling", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-10",
+    "version": 1,
+    "name": "악성 콘텐츠",
+    "englishName": "Malicious Content",
+    "title": "악성 콘텐츠",
+    "category": "Input Validation",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "게시판·댓글·자료실 등 사용자 생성 콘텐츠에 실행 가능한 코드, 스크립트, 매크로 또는 악성 파일을 삽입·배포할 수 있습니다.",
+    "impact": "서비스 방문자에게 악성코드가 유포되거나 피싱·세션 탈취·브라우저 공격이 수행될 수 있고 서비스의 신뢰도와 무결성이 훼손됩니다.",
+    "remediation": "허용할 콘텐츠 형식을 최소화하고 서버 측 형식 검증·안전한 변환·출력 인코딩·악성코드 검사를 적용하며 실행되지 않는 별도 저장소에서 제공합니다.",
+    "remediationDetail": [
+      "업무상 필요한 확장자와 MIME·파일 시그니처를 함께 허용목록으로 검증합니다.",
+      "HTML이 필요하면 검증된 sanitizer를 사용하고 문맥별 출력 인코딩을 적용합니다.",
+      "업로드 파일을 웹 루트 밖에 저장하고 다운로드 응답에 안전한 Content-Type과 disposition을 설정합니다.",
+      "악성코드 검사, CDR, 신고·삭제 절차와 기존 콘텐츠 재검사를 운영합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 p.672 (PDF p.680): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-20: https://cwe.mitre.org/data/definitions/20.html",
+      "OWASP Input Validation Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html",
+      "OWASP File Upload Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-20", "CWE-434"],
+    "tags": ["CS", "Malicious Content", "User Content", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-11",
+    "version": 1,
+    "name": "크로스사이트 스크립팅",
+    "englishName": "Cross-Site Scripting",
+    "title": "크로스사이트 스크립팅",
+    "category": "Client-Side",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "신뢰할 수 없는 입력이 HTML, 속성, JavaScript, CSS 또는 URL 문맥에 맞는 처리 없이 출력되어 피해자의 브라우저에서 공격자 스크립트가 실행됩니다.",
+    "impact": "세션·민감정보 탈취, 사용자 행위 대행, 피싱 화면 삽입, 콘텐츠 변조와 브라우저 기반 내부 시스템 접근이 가능할 수 있습니다.",
+    "remediation": "출력 문맥별 인코딩을 기본으로 적용하고 HTML 허용이 필요한 경우 검증된 sanitizer를 사용하며 안전한 DOM API와 CSP를 보조 통제로 적용합니다.",
+    "remediationDetail": [
+      "HTML 본문·속성·JavaScript·CSS·URL마다 해당 문맥용 인코더를 사용합니다.",
+      "innerHTML, document.write, 문자열 기반 eval 계열 대신 안전한 텍스트·DOM API를 사용합니다.",
+      "리치 텍스트는 지속적으로 유지관리되는 sanitizer와 엄격한 허용목록으로 정제합니다.",
+      "저장형·반사형·DOM 기반 XSS와 다중 디코딩·템플릿 우회를 회귀 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.673-677 (PDF pp.681-685): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-79: https://cwe.mitre.org/data/definitions/79.html",
+      "OWASP XSS Prevention Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-79"],
+    "tags": ["XS", "XSS", "Client-Side", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-12",
+    "version": 1,
+    "name": "약한 문자열 강도",
+    "englishName": "Weak Password Strength",
+    "title": "약한 문자열 강도",
+    "category": "Authentication",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "사용자가 짧거나 흔하거나 유출된 비밀번호를 설정할 수 있어 온라인 추측 또는 유출 해시의 오프라인 크래킹에 취약합니다.",
+    "impact": "계정 탈취와 권한 오용이 발생할 수 있고 동일 비밀번호를 재사용한 다른 서비스까지 연쇄적으로 침해될 수 있습니다.",
+    "remediation": "충분한 최소 길이와 긴 암호문 허용, 유출·상용 비밀번호 차단목록, 안전한 해시 저장과 로그인 시도 제한을 함께 적용합니다.",
+    "remediationDetail": [
+      "단일 요소 비밀번호는 최신 조직 정책과 NIST 지침에 맞는 충분한 최소 길이를 요구합니다.",
+      "흔한 값·서비스명·사용자명·유출 비밀번호를 전체 문자열 기준 차단목록과 비교합니다.",
+      "불필요한 조합 규칙과 주기적 변경 강제보다 길이, 차단목록, MFA와 침해 시 변경을 우선합니다.",
+      "비밀번호는 Argon2id 등 승인된 느린 해시와 고유 salt로 저장하고 평문·복호화 가능 저장을 금지합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.678-679 (PDF pp.686-687): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-521: https://cwe.mitre.org/data/definitions/521.html",
+      "NIST SP 800-63B-4 Password Verifiers: https://pages.nist.gov/800-63-4/sp800-63b.html#passwordver"
+    ],
+    "cwes": ["CWE-521"],
+    "tags": ["BF", "Password Policy", "Authentication", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-13",
+    "version": 1,
+    "name": "불충분한 인증",
+    "englishName": "Insufficient Authentication",
+    "title": "불충분한 인증",
+    "category": "Authentication",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "중요 기능 또는 민감정보 접근 전에 사용자의 신원을 충분히 검증하지 않거나 일부 채널·URL에서 인증 절차를 우회할 수 있습니다.",
+    "impact": "비인증 또는 다른 사용자가 계정 기능과 민감 데이터를 이용할 수 있으며 계정 탈취, 정보 유출과 중요 거래 수행으로 이어질 수 있습니다.",
+    "remediation": "모든 보호 자원에 중앙화된 서버 측 인증을 적용하고 위험 기능에는 재인증·MFA를 요구하며 대체 채널도 동일한 보안 수준으로 통제합니다.",
+    "remediationDetail": [
+      "기본 거부 정책으로 인증 미들웨어를 적용하고 정적·API·대체 메서드의 누락을 점검합니다.",
+      "비밀번호 변경, 결제, 권한 상승 등 위험 이벤트에서 최근 인증과 추가 인증을 요구합니다.",
+      "인증 결과를 클라이언트 필드·숨은 값·쿠키 권한 값에 의존하지 않습니다.",
+      "직접 URL, 메서드 변경, API 버전과 모바일·관리자 채널의 우회를 회귀 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.680-681 (PDF pp.688-689): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-287: https://cwe.mitre.org/data/definitions/287.html",
+      "MITRE CWE-306: https://cwe.mitre.org/data/definitions/306.html",
+      "OWASP Authentication Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-287", "CWE-306"],
+    "tags": ["IA", "Authentication Bypass", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-14",
+    "version": 1,
+    "name": "취약한 패스워드 복구",
+    "englishName": "Weak Password Recovery",
+    "title": "취약한 패스워드 복구",
+    "category": "Authentication",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "비밀번호 재설정 절차가 계정 존재 여부를 노출하거나 예측·재사용 가능한 토큰, 약한 본인확인 또는 과도한 요청을 허용합니다.",
+    "impact": "공격자가 피해자 계정의 비밀번호를 재설정해 계정을 탈취하거나 사용자 열거와 재설정 메시지 폭탄 공격을 수행할 수 있습니다.",
+    "remediation": "일회성·고엔트로피·단기 만료 토큰과 일관된 응답, 요청 제한, 강한 본인확인을 적용하고 성공 후 기존 세션 처리와 사용자 통지를 수행합니다.",
+    "remediationDetail": [
+      "존재·비존재 계정에 동일한 메시지와 유사한 처리 시간을 반환합니다.",
+      "토큰은 암호학적 난수로 생성해 해시 저장하고 단일 사용·짧은 만료·계정 결속을 보장합니다.",
+      "계정·IP·장치 기준 속도 제한과 이상 탐지를 적용하고 보안 질문을 복구 수단으로 사용하지 않습니다.",
+      "재설정 후 사용자에게 알리고 필요 시 기존 세션과 장기 인증 토큰을 무효화합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.682-683 (PDF pp.690-691): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-640: https://cwe.mitre.org/data/definitions/640.html",
+      "OWASP Forgot Password Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-640"],
+    "tags": ["PR", "Password Reset", "Account Recovery", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-15",
+    "version": 1,
+    "name": "크로스사이트 리퀘스트 변조(CSRF)",
+    "englishName": "Cross-Site Request Forgery",
+    "title": "크로스사이트 리퀘스트 변조(CSRF)",
+    "category": "Session Management",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "브라우저가 자동으로 전송하는 인증정보를 이용하는 상태 변경 요청에 위조 방지 검증이 없어 외부 사이트가 사용자의 의도 없이 요청을 실행시킬 수 있습니다.",
+    "impact": "로그인한 사용자의 권한으로 정보 변경, 거래, 계정 설정 수정 또는 관리자 기능이 수행될 수 있으며 기능의 민감도에 따라 피해가 달라집니다.",
+    "remediation": "서버가 검증하는 CSRF 토큰을 적용하고 SameSite 쿠키, Origin·Fetch Metadata 검증과 재인증을 계층적으로 사용하며 상태 변경에 GET을 사용하지 않습니다.",
+    "remediationDetail": [
+      "세션에 결속된 동기화 토큰 또는 서명된 double-submit cookie 패턴을 안전하게 구현합니다.",
+      "세션 쿠키에 Secure, HttpOnly와 적절한 SameSite 속성을 적용합니다.",
+      "Origin/Referer와 Sec-Fetch-Site 검증은 토큰의 보조 통제로 사용합니다.",
+      "중요 거래는 사용자에게 핵심 내용을 다시 표시하고 재인증 또는 거래 서명을 요구합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.684-685 (PDF pp.692-693): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-352: https://cwe.mitre.org/data/definitions/352.html",
+      "OWASP CSRF Prevention Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-352"],
+    "tags": ["CF", "CSRF", "Request Forgery", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-16",
+    "version": 1,
+    "name": "세션 예측",
+    "englishName": "Session Prediction",
+    "title": "세션 예측",
+    "category": "Session Management",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "세션 식별자가 짧거나 규칙적이거나 엔트로피가 부족하여 관찰된 토큰으로 다른 유효 세션 값을 추측할 수 있습니다.",
+    "impact": "유효 세션을 획득한 공격자가 인증을 우회하고 피해자 계정을 가장해 데이터와 기능에 접근할 수 있습니다.",
+    "remediation": "검증된 프레임워크의 암호학적 난수 세션 관리 기능을 사용하고 충분한 엔트로피·길이·불투명성을 보장하며 토큰 추측 시도를 탐지합니다.",
+    "remediationDetail": [
+      "직접 만든 순번·시간·사용자 정보 기반 토큰을 폐기하고 CSPRNG로 생성합니다.",
+      "세션 ID에 의미 있는 계정·권한·개인정보를 포함하지 않으며 서버 상태와 매핑합니다.",
+      "동시 다량의 잘못된 세션 ID와 토큰 공간 탐색을 제한·탐지합니다.",
+      "샘플 토큰의 길이·분포·중복·상관관계를 통계적으로 검토하고 프레임워크 설정을 점검합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.686-687 (PDF pp.694-695): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-330: https://cwe.mitre.org/data/definitions/330.html",
+      "MITRE CWE-340: https://cwe.mitre.org/data/definitions/340.html",
+      "OWASP Session Management Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-330", "CWE-340"],
+    "tags": ["SE", "Session Prediction", "Entropy", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-17",
+    "version": 1,
+    "name": "불충분한 인가",
+    "englishName": "Insufficient Authorization",
+    "title": "불충분한 인가",
+    "category": "Authorization",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "인증된 사용자가 요청한 객체·기능·필드에 대한 권한을 서버가 매 요청마다 검증하지 않아 허용 범위를 벗어난 작업을 수행할 수 있습니다.",
+    "impact": "다른 사용자의 정보 조회·변경, 수평·수직 권한 상승, 관리자 기능 사용과 업무 데이터 훼손이 발생할 수 있습니다.",
+    "remediation": "서버 측 중앙 인가 정책을 기본 거부로 적용하고 주체·객체·행위·테넌트·상태를 기준으로 모든 요청에서 검증합니다.",
+    "remediationDetail": [
+      "UI 숨김이나 추측하기 어려운 ID를 권한 통제로 간주하지 않습니다.",
+      "객체 조회 쿼리 단계에서 사용자·조직·테넌트 범위를 함께 제한합니다.",
+      "HTTP 메서드, API 버전, 일괄 처리와 개별 필드 변경 권한을 각각 검증합니다.",
+      "다중 역할·다중 테넌트의 수평·수직 권한 행렬을 자동 회귀 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.688-689 (PDF pp.696-697): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-862: https://cwe.mitre.org/data/definitions/862.html",
+      "OWASP Authorization Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-862"],
+    "tags": ["IN", "Authorization", "Access Control", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-18",
+    "version": 1,
+    "name": "불충분한 세션 만료",
+    "englishName": "Insufficient Session Expiration",
+    "title": "불충분한 세션 만료",
+    "category": "Session Management",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "유휴·절대 만료가 없거나 로그아웃·비밀번호 변경 후에도 서버 측 세션이 유효하여 오래된 토큰을 재사용할 수 있습니다.",
+    "impact": "탈취되거나 공유 단말에 남은 세션을 장기간 재사용해 계정과 민감 기능에 접근할 수 있으며 권한 변경이 즉시 반영되지 않을 수 있습니다.",
+    "remediation": "업무 민감도에 맞는 서버 측 유휴·절대·갱신 만료를 적용하고 로그아웃과 보안 이벤트에서 세션을 확실히 무효화합니다.",
+    "remediationDetail": [
+      "클라이언트 쿠키 만료가 아니라 서버 저장소에서 세션 유효성을 종료합니다.",
+      "유휴 시간, 최대 수명과 주기적 토큰 갱신 정책을 구분해 정의합니다.",
+      "로그아웃, 비밀번호·권한 변경, 계정 잠금과 위험 탐지 시 관련 세션을 폐기합니다.",
+      "만료 전후 토큰 재사용, 브라우저 캐시와 다중 장치 세션을 회귀 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.690-692 (PDF pp.698-700): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-613: https://cwe.mitre.org/data/definitions/613.html",
+      "OWASP WSTG Testing Session Timeout: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/07-Testing_Session_Timeout",
+      "OWASP Session Management Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-613"],
+    "tags": ["SC", "Session Timeout", "Logout", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-19",
+    "version": 1,
+    "name": "세션 고정",
+    "englishName": "Session Fixation",
+    "title": "세션 고정",
+    "category": "Session Management",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "인증 전 또는 권한 상승 전의 세션 식별자가 성공 후에도 그대로 유지되어 공격자가 미리 정한 세션을 피해자 인증 상태로 전환시킬 수 있습니다.",
+    "impact": "공격자가 피해자의 인증된 세션을 재사용하여 계정을 가장하고 보호된 정보와 기능에 접근할 수 있습니다.",
+    "remediation": "로그인과 모든 권한 수준 변경 직전에 기존 세션을 무효화하고 새로운 암호학적 세션 ID를 발급하며 외부에서 전달된 세션 ID를 엄격히 거부합니다.",
+    "remediationDetail": [
+      "인증 성공 전 기존 세션 ID를 폐기하고 새 서버 측 세션으로 필요한 상태만 안전하게 이전합니다.",
+      "MFA 완료, 관리자 전환과 민감 권한 획득 시에도 세션 ID를 재발급합니다.",
+      "URL·폼 필드의 세션 ID 전달을 금지하고 쿠키 기반 교환만 허용합니다.",
+      "공격자·피해자 두 브라우저로 강제 쿠키와 인증 전후 토큰 변화를 검증합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 p.693 (PDF p.701): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-384: https://cwe.mitre.org/data/definitions/384.html",
+      "OWASP WSTG Testing for Session Fixation: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/03-Testing_for_Session_Fixation"
+    ],
+    "cwes": ["CWE-384"],
+    "tags": ["SF", "Session Fixation", "Session Hijacking", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-20",
+    "version": 1,
+    "name": "자동화 공격",
+    "englishName": "Automated Attack",
+    "title": "자동화 공격",
+    "category": "Business Logic",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "로그인, 가입, 검색, 메시지 발송, 예약·구매 등 반복 가능한 기능에 빈도·비용·행위 제한이 없어 자동화 도구로 대량 요청을 수행할 수 있습니다.",
+    "impact": "계정 추측, 자원 고갈, 재고·혜택 선점, 스팸·비용 유발과 업무 데이터 왜곡이 발생하고 정상 사용자의 서비스 이용이 방해될 수 있습니다.",
+    "remediation": "계정·장치·IP·세션·업무 객체를 결합한 속도와 총량 제한, 단계적 지연, 이상 행위 탐지와 위험 기반 추가 검증을 적용합니다.",
+    "remediationDetail": [
+      "단순 IP 제한을 넘어 계정·기기·행위·시간창별 한도와 전역 비용 한도를 설계합니다.",
+      "지수 지연, 임시 잠금, CAPTCHA·MFA 등 단계적 통제를 서비스 거부 위험과 균형 있게 적용합니다.",
+      "성공·실패·대량 패턴과 우회 분산을 중앙 로그에서 탐지하고 대응 절차와 연계합니다.",
+      "로그인뿐 아니라 비밀번호 복구, OTP 발송, 쿠폰, 검색·내보내기 등 비용성 기능을 점검합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.694-695 (PDF pp.702-703): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-799: https://cwe.mitre.org/data/definitions/799.html",
+      "MITRE CWE-307: https://cwe.mitre.org/data/definitions/307.html",
+      "NIST SP 800-63B-4 Rate Limiting: https://pages.nist.gov/800-63-4/sp800-63b.html#rate-limiting"
+    ],
+    "cwes": ["CWE-307", "CWE-799"],
+    "tags": ["AU", "Automation", "Rate Limit", "Business Logic", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-21",
+    "version": 1,
+    "name": "프로세스 검증 누락",
+    "englishName": "Missing Process Validation",
+    "title": "프로세스 검증 누락",
+    "category": "Business Logic",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "다단계 업무 절차의 선행 조건과 상태 전이를 서버가 검증하지 않아 URL·파라미터·요청 순서를 조작해 필수 단계를 건너뛸 수 있습니다.",
+    "impact": "결제·승인·본인확인·약관동의·재고 확인 등의 필수 통제가 우회되어 무단 거래, 권한 오용, 금전 손실과 데이터 무결성 훼손이 발생할 수 있습니다.",
+    "remediation": "업무 상태와 허용 전이를 서버가 신뢰 가능한 저장소에서 관리하고 각 요청에서 선행 조건·주체·객체·금액을 다시 검증합니다.",
+    "remediationDetail": [
+      "클라이언트의 단계 번호·완료 플래그·금액을 신뢰하지 않고 서버 상태 머신으로 검증합니다.",
+      "각 단계 토큰을 사용자·거래·만료시간·이전 상태에 결속하고 재사용을 방지합니다.",
+      "최종 처리 직전에 가격·권한·재고·승인 상태를 원본 데이터로 재검증합니다.",
+      "단계 생략·역순·중복·병렬 요청과 이전 응답 재전송을 자동 회귀 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.696-698 (PDF pp.704-706): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-841: https://cwe.mitre.org/data/definitions/841.html",
+      "OWASP WSTG Business Logic Testing: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/10-Business_Logic_Testing/"
+    ],
+    "cwes": ["CWE-841"],
+    "tags": ["PV", "Workflow Bypass", "Business Logic", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-22",
+    "version": 1,
+    "name": "파일 업로드",
+    "englishName": "Unrestricted File Upload",
+    "title": "파일 업로드",
+    "category": "Input Validation",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "업로드 파일의 확장자·실제 형식·내용·이름·크기·저장 위치를 충분히 검증하지 않아 실행 가능한 또는 악성 파일을 서버에 저장·처리할 수 있습니다.",
+    "impact": "웹셸과 임의 코드 실행, 악성 콘텐츠 배포, 기존 파일 덮어쓰기, 저장공간 고갈, 파서 취약점 악용과 내부 시스템 침해가 가능할 수 있습니다.",
+    "remediation": "업무상 필요한 형식만 다중 검증하고 파일명을 서버가 생성해 웹 루트 밖에 최소 권한으로 저장하며 악성코드 검사와 안전한 제공 계층을 적용합니다.",
+    "remediationDetail": [
+      "확장자, MIME 헤더, 파일 시그니처와 실제 파싱 결과를 조합한 허용목록 검증을 수행합니다.",
+      "이중 확장자·대소문자·NUL·alternate data stream과 경로 문자를 정규화 후 거부합니다.",
+      "UUID 등 새 파일명을 사용하고 업로드 원본명을 경로나 실행 판단에 사용하지 않습니다.",
+      "웹 루트 밖 또는 별도 호스트에 저장하고 실행 권한 제거, 크기·수량 제한, AV/CDR를 적용합니다.",
+      "다운로드 시 인증·인가와 안전한 Content-Type·Content-Disposition을 설정합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.699-706 (PDF pp.707-714): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-434: https://cwe.mitre.org/data/definitions/434.html",
+      "OWASP File Upload Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-434"],
+    "tags": ["FU", "File Upload", "Web Shell", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-23",
+    "version": 1,
+    "name": "파일 다운로드",
+    "englishName": "Insecure File Download",
+    "title": "파일 다운로드",
+    "category": "Access Control",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "다운로드 요청의 파일명·경로·식별자를 신뢰하거나 객체 권한을 확인하지 않아 허용된 범위 밖 파일 또는 다른 사용자의 첨부파일을 내려받을 수 있습니다.",
+    "impact": "소스·설정·인증정보·개인정보와 다른 사용자의 문서가 노출될 수 있으며 후속 침해를 위한 내부 경로와 비밀정보가 제공됩니다.",
+    "remediation": "클라이언트 경로 대신 서버 측 불투명 식별자를 사용하고 정규화된 저장 루트 경계를 검증하며 매 요청마다 파일 객체 인가를 적용합니다.",
+    "remediationDetail": [
+      "다운로드 ID를 서버 메타데이터의 실제 경로에 매핑하고 사용자 입력을 파일 경로에 연결하지 않습니다.",
+      "경로 정규화 후 결과가 지정 루트 내부인지 확인하고 심볼릭 링크·별칭 우회를 방지합니다.",
+      "파일 소유자·조직·테넌트·공개 상태를 서버에서 검증합니다.",
+      "../, 절대 경로, 이중 인코딩, 백슬래시, NUL과 다른 사용자의 ID를 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.707-710 (PDF pp.715-718): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-22: https://cwe.mitre.org/data/definitions/22.html",
+      "MITRE CWE-73: https://cwe.mitre.org/data/definitions/73.html",
+      "OWASP Authorization Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-22", "CWE-73"],
+    "tags": ["FD", "File Download", "Path Traversal", "IDOR", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-24",
+    "version": 1,
+    "name": "관리자 페이지 노출",
+    "englishName": "Exposed Admin Page",
+    "title": "관리자 페이지 노출",
+    "category": "Security Misconfiguration",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "관리자 인터페이스가 예측 가능한 URL·기본 포트·공개 네트워크에 노출되거나 일반 사용자와 충분히 분리되지 않아 공격 표면이 확대됩니다.",
+    "impact": "관리자 로그인 공격, 취약한 관리 기능 악용과 설정·데이터 장악 가능성이 커지며 인증·인가가 미흡한 경우 즉시 권한 상승으로 이어질 수 있습니다.",
+    "remediation": "관리 인터페이스를 업무상 필요한 네트워크와 주체로 제한하고 강한 인증·중앙 인가·감사 로그를 적용하며 기본 URL과 불필요한 관리 도구를 제거합니다.",
+    "remediationDetail": [
+      "VPN·관리망·접근 프록시와 방화벽 허용목록으로 인터넷 직접 노출을 제한합니다.",
+      "관리자 계정에 MFA, 별도 계정, 짧은 세션과 강화된 시도 제한을 적용합니다.",
+      "URL 비공개나 포트 변경을 보안통제로 간주하지 않고 모든 요청에서 인증·인가합니다.",
+      "기본 관리 콘솔, 샘플·진단 도구와 기본 계정을 제거하고 접근을 중앙 감사합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.711-713 (PDF pp.719-721): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-425: https://cwe.mitre.org/data/definitions/425.html",
+      "OWASP WSTG Enumerate Admin Interfaces: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/05-Enumerate_Infrastructure_and_Application_Admin_Interfaces"
+    ],
+    "cwes": ["CWE-425"],
+    "tags": ["AE", "Admin Interface", "Forced Browsing", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-25",
+    "version": 1,
+    "name": "경로 추적",
+    "englishName": "Path Traversal",
+    "title": "경로 추적",
+    "category": "Access Control",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "파일 또는 디렉터리 경로에 사용자 입력이 포함되고 정규화된 경계를 검증하지 않아 상위·절대·대체 경로로 이동할 수 있습니다.",
+    "impact": "애플리케이션 범위 밖의 설정·소스·인증 파일을 읽거나 덮어쓸 수 있으며 쓰기 기능과 결합되면 코드 실행 또는 서비스 장애로 확대될 수 있습니다.",
+    "remediation": "외부 입력을 경로로 사용하지 않고 서버 식별자 매핑을 적용하며 불가피한 경우 정규화 후 고정된 루트 내부 경로인지 검증합니다.",
+    "remediationDetail": [
+      "허용 파일을 서버 측 ID-경로 매핑으로 선택하고 원본 경로를 클라이언트에 노출하지 않습니다.",
+      "디코딩·정규화를 한 번 일관되게 수행한 뒤 절대 경로와 루트 경계를 검사합니다.",
+      "심볼릭 링크, junction, 별칭과 대소문자·플랫폼 경로 구분자 우회를 고려합니다.",
+      "../, ..\\, 절대경로, 이중 URL 인코딩, 유니코드와 NUL 변형을 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.714-715 (PDF pp.722-723): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-22: https://cwe.mitre.org/data/definitions/22.html",
+      "OWASP Path Traversal: https://owasp.org/www-community/attacks/Path_Traversal"
+    ],
+    "cwes": ["CWE-22"],
+    "tags": ["PT", "Path Traversal", "Directory Traversal", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-26",
+    "version": 1,
+    "name": "위치 공개",
+    "englishName": "Location Disclosure",
+    "title": "위치 공개",
+    "category": "Information Disclosure",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "예측 가능한 경로에 백업·로그·샘플·개발·테스트 파일이 남아 있거나 검색엔진과 공개 인덱스에 내부 위치와 배포 산출물이 노출됩니다.",
+    "impact": "소스·설정·데이터베이스 덤프·로그와 내부 구조가 공개되어 인증정보·개인정보가 유출되고 후속 공격에 필요한 경로 정보가 제공될 수 있습니다.",
+    "remediation": "웹 루트와 공개 저장소에서 불필요한 파일·샘플·백업을 제거하고 배포 허용목록, 검색 노출 모니터링과 민감 자원 접근통제를 적용합니다.",
+    "remediationDetail": [
+      ".bak, .old, .zip, .log, .sql, 임시파일과 IDE·형상관리 산출물을 배포 대상에서 제외합니다.",
+      "기본 샘플·매뉴얼·진단 페이지와 사용하지 않는 가상 디렉터리를 제거합니다.",
+      "robots.txt는 비밀 보호 수단으로 사용하지 않고 민감 자원에 인증·인가를 적용합니다.",
+      "배포 파이프라인에서 파일 허용목록과 비밀 스캔을 수행하고 검색엔진·공개 캐시를 주기적으로 확인합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.716-718 (PDF pp.724-726): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-530: https://cwe.mitre.org/data/definitions/530.html",
+      "MITRE CWE-200: https://cwe.mitre.org/data/definitions/200.html",
+      "OWASP WSTG Review Old Backup and Unreferenced Files: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/04-Review_Old_Backup_and_Unreferenced_Files_for_Sensitive_Information"
+    ],
+    "cwes": ["CWE-200", "CWE-530"],
+    "tags": ["PL", "Backup Files", "Sensitive Files", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-27",
+    "version": 1,
+    "name": "데이터 평문 전송",
+    "englishName": "Cleartext Data Transmission",
+    "title": "데이터 평문 전송",
+    "category": "Cryptography",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "인증정보·세션·개인정보 등 민감 데이터가 HTTP 또는 보호되지 않은 혼합 콘텐츠와 약한 전송 설정을 통해 평문 또는 불충분하게 보호되어 전송됩니다.",
+    "impact": "네트워크 경로의 공격자가 민감정보와 세션을 도청·변조해 계정을 탈취하거나 거래 내용을 변경할 수 있습니다.",
+    "remediation": "모든 민감 통신에 최신 TLS를 강제하고 HTTP를 안전하게 리디렉션하며 HSTS, 안전한 쿠키와 인증서 검증을 적용하고 혼합 콘텐츠를 제거합니다.",
+    "remediationDetail": [
+      "로그인 이후뿐 아니라 전체 사이트·API·정적 자원과 백엔드 연동에 HTTPS를 기본 적용합니다.",
+      "TLS 1.2 이상과 승인된 암호군을 사용하고 오래된 프로토콜·약한 알고리즘을 비활성화합니다.",
+      "HSTS를 단계적으로 적용하고 세션 쿠키에 Secure 속성을 설정합니다.",
+      "인증서 체인·호스트명 검증을 우회하지 않으며 HTTP 폼 액션과 혼합 콘텐츠를 제거합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.719-720 (PDF pp.727-728): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-319: https://cwe.mitre.org/data/definitions/319.html",
+      "OWASP Transport Layer Security Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-319"],
+    "tags": ["SN", "Cleartext", "TLS", "Cryptography", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  },
+  {
+    "id": "WEB-28",
+    "version": 1,
+    "name": "쿠키 변조",
+    "englishName": "Cookie Tampering",
+    "title": "쿠키 변조",
+    "category": "Session Management",
+    "defaultSeverity": "High",
+    "cvssVector": "",
+    "summary": "권한·사용자 식별자·가격·업무 상태 등 신뢰 결정을 클라이언트 쿠키 값에 의존하거나 쿠키의 무결성과 기밀성을 검증하지 않아 값을 조작할 수 있습니다.",
+    "impact": "다른 사용자 가장, 권한 상승, 가격·기능·업무 상태 변경과 세션 탈취가 발생할 수 있으며 쿠키에 저장된 민감정보가 노출될 수 있습니다.",
+    "remediation": "중요 상태는 서버 측 세션에 보관하고 불가피한 클라이언트 토큰은 검증된 인증 암호화 또는 서명으로 보호하며 모든 권한 판단을 서버 원본으로 재검증합니다.",
+    "remediationDetail": [
+      "role, userId, price, approval 같은 값을 단순 인코딩·해시만 한 쿠키에서 신뢰하지 않습니다.",
+      "상태 토큰에는 검증된 MAC 또는 AEAD, 키 회전, 만료와 재사용 방지를 적용합니다.",
+      "세션 쿠키에 Secure, HttpOnly, 적절한 SameSite·Path·Domain과 __Host- 접두사를 적용합니다.",
+      "서명 제거·값 변경·토큰 재생·다른 계정 쿠키 교환·알고리즘 혼동을 테스트합니다."
+    ],
+    "references": [
+      "KISA 상세가이드(2021.03) Web 보안 pp.721-724 (PDF pp.729-732): https://www.krcert.or.kr/common/cmm/fms/FileDown.do?atchFileId=FILE_000000000035988&fileSn=2736",
+      "MITRE CWE-565: https://cwe.mitre.org/data/definitions/565.html",
+      "OWASP Session Management Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html",
+      "OWASP Cookie Theft Mitigation Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Cookie_Theft_Mitigation_Cheat_Sheet.html"
+    ],
+    "cwes": ["CWE-565"],
+    "tags": ["CC", "Cookie Tampering", "Session", "KISA-WEB-2021"],
+    "status": "Approved",
+    "reviewedBy": "Otter Security Content Review",
+    "reviewedAt": "2026-07-17"
+  }
+]

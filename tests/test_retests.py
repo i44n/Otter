@@ -27,6 +27,15 @@ class RetestServiceTest(unittest.TestCase):
         self.finding = self.service.create_finding(
             FindingInput(target_id="WEB-01", title="Retestable finding")
         )
+        procedure_image = self.root / "procedure.png"
+        procedure_image.write_bytes(b"procedure-image")
+        procedure_evidence = self.service.add_evidence(
+            self.finding.id,
+            procedure_image,
+            "Procedure result",
+            evidence_type="screenshot",
+            classification="report-ready",
+        )
         self.service.save_procedure(
             self.finding.id,
             preconditions="Two accounts exist.",
@@ -34,6 +43,7 @@ class RetestServiceTest(unittest.TestCase):
                 ProcedureStepInput(
                     title="Request another account",
                     action="Change the object identifier.",
+                    evidence_ids=(procedure_evidence.id,),
                 )
             ],
         )

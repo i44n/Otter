@@ -108,6 +108,45 @@ class ProjectServiceTest(unittest.TestCase):
         self.assertEqual(restored.caption, "Technical detail response.")
         self.assertEqual(restored.placement, "appendix")
 
+    def test_finding_bundle_saves_result_evidence_usage_and_display_order(self) -> None:
+        finding = self.service.create_finding(
+            FindingInput(target_id="WEB-01", title="Result evidence")
+        )
+        source = self.root / "result.png"
+        source.write_bytes(b"result image fixture")
+        evidence = self.service.add_evidence(
+            finding.id,
+            source,
+            "Final result",
+            evidence_type="screenshot",
+            classification="report-ready",
+        )
+
+        self.service.update_finding_bundle(
+            finding.id,
+            finding_values={},
+            preconditions="",
+            steps=[],
+            finding_evidence_links=(
+                EvidenceLinkInput(
+                    evidence.id,
+                    "The final vulnerable response.",
+                    "inline",
+                    30,
+                ),
+            ),
+        )
+
+        link = next(
+            item
+            for item in self.service.list_evidence_links(finding.id)
+            if item.scope_type == "finding"
+        )
+        self.assertEqual(link.scope_id, "")
+        self.assertEqual(link.caption, "The final vulnerable response.")
+        self.assertEqual(link.placement, "inline")
+        self.assertEqual(link.order, 30)
+
     def test_finding_bundle_rolls_back_every_document_on_failure(self) -> None:
         finding = self.service.create_finding(
             FindingInput(target_id="WEB-01", title="Rollback finding")
@@ -217,11 +256,23 @@ class ProjectServiceTest(unittest.TestCase):
             finding.id,
             tester="Tester Two",
             cvss_score=None,
+            cvss_vector="",
             template_version=4,
         )
         self.assertEqual(updated.tester, "Tester Two")
         self.assertIsNone(updated.cvss.score)
         self.assertEqual(updated.template.version, 4)
+
+        with self.assertRaises(KitError) as mismatch:
+            self.service.update_finding(
+                finding.id,
+                cvss_score=9.9,
+                cvss_vector="CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+            )
+        self.assertEqual(
+            mismatch.exception.code,
+            "CVSS_SCORE_VECTOR_MISMATCH",
+        )
 
         snapshot = self.service.snapshot()
         self.assertEqual(len(snapshot.targets), 1)
@@ -232,6 +283,30 @@ class ProjectServiceTest(unittest.TestCase):
             technical_analysis="Service-managed analysis.",
         )
         self.assertEqual(updated.technical_details.analysis, "Service-managed analysis.")
+
+    def test_validation_warns_about_legacy_cvss_score_vector_mismatch(self) -> None:
+        finding = self.service.create_finding(
+            FindingInput(
+                target_id="WEB-01",
+                title="Legacy CVSS mismatch",
+                cvss_score=8.1,
+                cvss_vector="CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+            )
+        )
+        record = self.service.repository.get_finding(finding.id)
+        value = dict(record.data)
+        value["cvss"] = dict(value["cvss"])
+        value["cvss"]["score"] = 9.9
+        self.service.repository.save_finding(record, value)
+
+        issues = self.service.validate()
+        mismatch = [
+            item
+            for item in issues
+            if item["code"] == "CVSS_SCORE_VECTOR_MISMATCH"
+        ]
+        self.assertEqual(len(mismatch), 1)
+        self.assertEqual(mismatch[0]["level"], "WARNING")
 
     def test_evidence_move_updates_manifest_and_finding_reference(self) -> None:
         finding = self.service.create_finding(

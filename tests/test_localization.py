@@ -20,6 +20,7 @@ from webpentestkit.localization import (
     value_label,
 )
 from webpentestkit.qt_gui.localization import configure_ui_localization
+from webpentestkit.presentation_engine.contracts import ROLE_SPECS, SLOT_SPECS
 
 
 class LocalizationTest(unittest.TestCase):
@@ -117,6 +118,40 @@ class LocalizationTest(unittest.TestCase):
         self.assertEqual(value_label("severity", "Critical"), "치명적")
         configure_localization("en-US")
         self.assertEqual(value_label("severity", "Critical"), "Critical")
+
+    def test_presentation_contract_labels_exist_in_both_language_packs(self) -> None:
+        locale_root = Path(__file__).resolve().parents[1] / "webpentestkit" / "locales"
+        packs = [
+            json.loads((locale_root / name).read_text(encoding="utf-8"))["messages"]["ui"]
+            for name in ("ko-KR.json", "en-US.json")
+        ]
+        required = {
+            "presentations.kind.text",
+            "presentations.kind.image",
+            "presentations.fit.cover",
+            "presentations.fit.contain",
+            "presentations.fit.stretch",
+            "presentations.slot.evidence",
+            "presentations.slotDescription.evidence",
+            "presentations.workflow.title",
+            "presentations.workflow.status.ready",
+            "presentations.output.showAdjustments",
+            "presentations.output.adjustmentHelp",
+            "procedure.evidence.optionalHelp",
+        }
+        for role in ROLE_SPECS.values():
+            required.add(role.label_key)
+            required.add(role.description_key)
+        for slot in SLOT_SPECS.values():
+            required.add(slot.label_key)
+            required.add(slot.description_key)
+        for messages in packs:
+            self.assertFalse(required.difference(messages))
+        manager = LocalizationManager(locale="en-US")
+        self.assertEqual(
+            manager.translate("presentations.title", "PPT 생성"),
+            "PowerPoint templates",
+        )
 
     def test_error_code_can_be_localized_without_changing_domain_error(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

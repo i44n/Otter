@@ -34,16 +34,18 @@ GUI는 JSON이나 SQLite를 직접 읽거나 쓰지 않습니다. `GuiController
 - `credential_vault.py`: 계정 모델의 암호화 저장과 수명주기
 - `security_crypto.py`: Argon2id 파라미터 검증과 복구키 공통 처리
 - `services.py`: 기존 호출 경로를 유지하는 `ProjectService` facade
-- `project_services/`: 수명주기, 보안, 대상, 취약점, 증적 연결, 절차, 재검증, 증적, 보관과 보고서 업무 규칙
+- `project_services/`: 수명주기, 보안, 대상, 취약점, 증적 연결, 절차, 재검증, 증적, 보관, 보고서와 프레젠테이션 업무 규칙
 - `reporting.py`: 기존 보고서 함수 import를 유지하는 facade
-- `reporting_core/`: 검증, 언어별 문구, 공통 보고서 뷰, Markdown/CSV와 PPT 번들 생성
+- `reporting_core/`: 검증, 언어별 문구, 공통 보고서 뷰, Markdown/CSV, 기존 PPT 번들과 의미 기반 Presentation IR 생성
+- `presentation_engine/`: 역할·슬롯 중앙 계약, v1/v2/v3/v4→v5 프로필 및 Plan v1→v2 마이그레이션, 레이아웃 세트·Variant·Story Recipe·다중 콘텐츠 검증, 템플릿 분석·변경 복구, 자동 페이지 계획, OOXML 렌더링과 결과 구조 검증
+- `presentation_library.py`: 애플리케이션 공용 PPTX 템플릿·프로필 경로 레지스트리와 변경 상태 감지
 - `locking.py`: 스레드·프로세스 간 프로젝트 단위 재진입 잠금
 - `schema_versions.py`: 프로젝트 문서의 현재 스키마 버전 검사
 - `archives.py`: 대상·취약점·증적 보관과 복구
 - `knowledge.py`: 버전형 SQLite 취약점 템플릿
 - `gui/controller.py`: Qt 화면과 서비스 계층 사이의 상태 경계
 - `qt_gui/pages.py`, `qt_gui/dialogs.py`: 기존 GUI import를 유지하는 facade
-- `qt_gui/page_views/`: 대시보드, 대상, 취약점, 증적, 라이브러리, 보고서, 계정, 보관과 설정 화면
+- `qt_gui/page_views/`: 대시보드, 대상, 취약점, 증적, 라이브러리, 보고서, PPT 생성, 계정, 보관과 설정 화면
 - `qt_gui/dialog_views/`: 프로젝트, 대상, 취약점, 증적, 절차·재검증, 라이브러리와 계정·보안 다이얼로그
 - `qt_gui/window_workflows/`: `MainWindow`가 노출하는 기능별 사용자 작업 조정 로직
 - `qt_gui/main_window.py`: 앱 셸, 탐색, 반응형 레이아웃과 공통 상태·오류 처리
@@ -60,6 +62,23 @@ GUI는 JSON이나 SQLite를 직접 읽거나 쓰지 않습니다. `GuiController
 - 새 기능은 기존 대형 facade에 구현하지 않고 해당 기능 모듈에 추가합니다.
 
 언어팩 형식과 UI/보고서 언어 분리 규칙은 [LOCALIZATION.md](LOCALIZATION.md)를 참고합니다.
+
+PPT Profile v5는 `presentation_engine/contracts.py`의 역할·슬롯·Variant·반복·조건
+예약어만 허용합니다. Layout Family와 레이아웃 ID는 프로필별 내부 식별자이며 Story
+Recipe는 고정 역할을 순서화하고 선택적 `familyId`로 Planner 후보 세트를 제한합니다.
+의미 역할을 증적 페이지 수와 결합하지 말고,
+기본/연속 분할은 Variant로 표현합니다. 다중 절차 페이지는
+`composition.itemCapacity`와 연속된 `items.N.*` 슬롯으로 표현하고, Plan v2의
+`blocks` 순서는 원본 절차 순서를 유지해야 합니다. 일반 역할의 레이아웃 선택은
+모호한 짧음/보통/김 UI가 아니라 바인딩별 `maxChars`와 실제 문자열 길이로 판단합니다.
+`stepNumber` 텍스트 바인딩은 선택적 `formatter` 객체를 가질 수 있습니다. 포맷터는
+`presentation_engine/formatters.py`에서 검증·변환하며 임의 코드 실행 없이 선언된
+sequence 스타일과 단일 `{number}` 토큰만 허용합니다. Planner와 Renderer는 같은
+변환 함수를 사용해야 하므로 수용량 판단과 실제 출력 문자열이 달라지지 않습니다.
+계약을 바꿀 때는
+`schemas/presentation-profile.schema.json`, 한국어·영어 역할 및 슬롯 표시명,
+마이그레이션 테스트를 함께 갱신해야 합니다. Profile v1/v2/v3/v4 입력은 로드 시 v5로
+변환되며 지원하지 않는 항목을 조용히 삭제하지 않습니다.
 
 ## 저장 규칙
 

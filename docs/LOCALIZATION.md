@@ -85,13 +85,15 @@ GUI는 `localize_error()`를 사용하므로 언어팩의 `errors.ITEM_UNKNOWN`�
 
 ```powershell
 python tools/i18n.py wrap
+python tools/i18n.py sync
 python tools/i18n.py build
 python tools/i18n.py audit
 ```
 
 - `wrap`은 Qt GUI 파일에 남은 한국어 리터럴을 `tr()` 호출과 안정적인 생성 키로 전환합니다. 새 문구를 추가한 뒤 한 번만 실행합니다.
-- `build`는 한국어 카탈로그와 `translations/en-US`의 원문 번역을 결합해 `webpentestkit/locales/en-US.json`을 생성합니다.
-- `audit`은 미래핑 한국어 UI 문구, 양쪽 카탈로그의 키 차이, 영어 언어팩의 한글 잔존, 서식 치환 변수 불일치를 검사합니다.
+- `sync`는 `qt_gui/**/*.py`의 정적 `tr()` 기본 문구, `PRESENTATION_*` 오류 기본 문구와 `presentation_engine/contracts.py`에서 동적으로 생성되는 역할·슬롯 표시명을 한국어 카탈로그에 추가합니다.
+- `build`는 의미 기반 `keys`, 기존 문구 기반 `sources`, 오류 `errors` 번역을 결합해 `webpentestkit/locales/en-US.json`을 생성합니다. 의미 기반 키 번역을 우선하며 기존 영어 번역은 보존합니다.
+- `audit`은 모든 Qt GUI 하위 모듈의 미매핑 한국어 UI 문구, 누락된 `tr()` 키와 PPT 오류 코드, 역할·슬롯 계약과 카탈로그의 불일치, 양쪽 카탈로그 키 차이, 영어 언어팩의 한글 잔존, 서식 치환 변수 불일치를 검사합니다.
 
 생성 키는 문구의 해시를 사용하므로 이미 코드에 들어간 키를 번역문이나 문구 변경에 맞춰 임의로 바꾸지 않습니다. 자주 재사용되거나 도메인 의미가 중요한 문구는 `nav.dashboard`처럼 사람이 정한 의미 기반 키를 우선 사용합니다.
 

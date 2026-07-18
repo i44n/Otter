@@ -1,4 +1,4 @@
-"""Open the generated ACME sample with its dedicated knowledge database."""
+"""Open the generated W-library E2E sample and its copied knowledge DB."""
 
 from __future__ import annotations
 
@@ -14,12 +14,13 @@ from webpentestkit.qt_gui.app import run  # noqa: E402
 
 
 def main() -> int:
-    sample = Path(__file__).resolve().parent / "generated" / "acme-shop"
+    sample = Path(__file__).resolve().parent / "generated" / "w-library-e2e"
     project = sample / "project"
     knowledge = sample / "knowledge.db"
     if not (project / "project.json").is_file() or not knowledge.is_file():
         raise SystemExit(
-            "Sample data is missing. Run: python examples/create_sample.py --force"
+            "Sample data is missing. Run: "
+            "python examples/create_presentation_e2e_sample.py --force"
         )
     return run(project, knowledge)
 
