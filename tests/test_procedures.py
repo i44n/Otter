@@ -187,6 +187,75 @@ class ProcedureServiceTest(unittest.TestCase):
         codes = {item["code"] for item in validate_project(self.project)}
         self.assertIn("EVIDENCE_LINK_UNKNOWN", codes)
 
+    def test_validation_allows_optional_and_multiple_procedure_evidence(self) -> None:
+        self.service.save_procedure(
+            self.finding.id,
+            preconditions="",
+            steps=[ProcedureStepInput(title="No image", action="Inspect the response.")],
+        )
+        codes = {item["code"] for item in validate_project(self.project)}
+        self.assertNotIn("PROCEDURE_STEP_EVIDENCE_COUNT", codes)
+
+        text_source = self.root / "step.txt"
+        text_source.write_text("response", encoding="utf-8")
+        text_evidence = self.service.add_evidence(
+            self.finding.id,
+            text_source,
+            "Text evidence",
+            classification="internal",
+        )
+        self.service.save_procedure(
+            self.finding.id,
+            preconditions="",
+            steps=[
+                ProcedureStepInput(
+                    title="Text evidence",
+                    action="Inspect the response.",
+                    evidence_ids=(text_evidence.id,),
+                )
+            ],
+        )
+        codes = {item["code"] for item in validate_project(self.project)}
+        self.assertNotIn("PROCEDURE_STEP_EVIDENCE_IMAGE", codes)
+        self.assertNotIn("PROCEDURE_STEP_EVIDENCE_REPORT_READY", codes)
+        self.assertIn("EVIDENCE_LINK_INTERNAL", codes)
+
+        first_source = self.root / "first.png"
+        second_source = self.root / "second.png"
+        png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 8 + (1600).to_bytes(4, "big") + (900).to_bytes(4, "big")
+        first_source.write_bytes(png)
+        second_source.write_bytes(png)
+        first = self.service.add_evidence(
+            self.finding.id,
+            first_source,
+            "First screenshot",
+            evidence_type="screenshot",
+            classification="report-ready",
+        )
+        second = self.service.add_evidence(
+            self.finding.id,
+            second_source,
+            "Second screenshot",
+            evidence_type="screenshot",
+            classification="report-ready",
+        )
+        self.service.save_procedure(
+            self.finding.id,
+            preconditions="",
+            steps=[
+                ProcedureStepInput(
+                    title="Two images",
+                    action="Inspect both images.",
+                    evidence_ids=(first.id, second.id),
+                )
+            ],
+        )
+        codes = {item["code"] for item in validate_project(self.project)}
+        self.assertNotIn("PROCEDURE_STEP_EVIDENCE_COUNT", codes)
+
+        self.assertNotIn("PROCEDURE_STEP_EVIDENCE_IMAGE", codes)
+        self.assertNotIn("PROCEDURE_STEP_EVIDENCE_REPORT_READY", codes)
+
     def test_export_includes_structured_procedure_slides_and_deduplicated_evidence(self) -> None:
         source = self.root / "step.png"
         source.write_bytes(
@@ -234,13 +303,13 @@ class ProcedureServiceTest(unittest.TestCase):
         self.assertTrue((export / "findings" / self.finding.id / "procedure.json").is_file())
 
     def test_link_caption_and_placement_control_both_report_outputs(self) -> None:
-        source = self.root / "appendix.http"
-        source.write_text("HTTP/1.1 403 Forbidden", encoding="utf-8")
+        source = self.root / "appendix.png"
+        source.write_bytes(b"appendix-image")
         evidence = self.service.add_evidence(
             self.finding.id,
             source,
             "Appendix response",
-            evidence_type="http-response",
+            evidence_type="screenshot",
             classification="report-ready",
         )
         procedure = self.service.save_procedure(
@@ -281,15 +350,16 @@ class ProcedureServiceTest(unittest.TestCase):
         )
         self.assertEqual(appendix_slide["evidence"][0]["id"], evidence.id)
 
-    def test_export_paginates_all_procedure_evidence(self) -> None:
+    def test_export_includes_evidence_linked_to_procedure_steps(self) -> None:
         evidence_ids = []
         for index in range(5):
-            source = self.root / f"step-{index + 1}.txt"
-            source.write_text(f"step evidence {index + 1}", encoding="utf-8")
+            source = self.root / f"step-{index + 1}.png"
+            source.write_bytes(f"step image {index + 1}".encode("utf-8"))
             evidence = self.service.add_evidence(
                 self.finding.id,
                 source,
                 f"Step evidence {index + 1}",
+                evidence_type="screenshot",
                 classification="report-ready",
             )
             evidence_ids.append(evidence.id)
@@ -298,10 +368,11 @@ class ProcedureServiceTest(unittest.TestCase):
             preconditions="",
             steps=[
                 ProcedureStepInput(
-                    title="Collect all evidence",
-                    action="Run the reproduction and capture every result.",
-                    evidence_ids=tuple(evidence_ids),
+                    title=f"Collect step {index + 1} evidence",
+                    action=f"Run reproduction step {index + 1} and capture its result.",
+                    evidence_ids=(evidence_id,),
                 )
+                for index, evidence_id in enumerate(evidence_ids)
             ],
         )
 
@@ -310,15 +381,14 @@ class ProcedureServiceTest(unittest.TestCase):
         step_slides = [
             slide
             for slide in slides
-            if slide["type"] in {"finding-procedure", "finding-procedure-evidence"}
-            and slide.get("stepId") == "STEP-001"
+            if slide["type"] == "finding-procedure"
         ]
-        self.assertEqual([len(slide["evidence"]) for slide in step_slides], [2, 2, 1])
+        self.assertEqual([slide["stepId"] for slide in step_slides], [f"STEP-{index:03d}" for index in range(1, 6)])
+        self.assertEqual([len(slide["evidence"]) for slide in step_slides], [1, 1, 1, 1, 1])
         self.assertEqual(
             [item["id"] for slide in step_slides for item in slide["evidence"]],
             evidence_ids,
         )
-        self.assertEqual([slide["page"] for slide in step_slides[1:]], [2, 3])
 
 
 if __name__ == "__main__":

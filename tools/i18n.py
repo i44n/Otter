@@ -11,12 +11,25 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUI_ROOT = ROOT / "webpentestkit" / "qt_gui"
+PRESENTATION_CONTRACT = ROOT / "webpentestkit" / "presentation_engine" / "contracts.py"
 KO_CATALOG = ROOT / "webpentestkit" / "locales" / "ko-KR.json"
 EN_CATALOG = ROOT / "webpentestkit" / "locales" / "en-US.json"
 EN_SOURCE = ROOT / "translations" / "en-US"
-TARGET_FILES = ("dialogs.py", "main_window.py", "models.py", "pages.py", "widgets.py")
 HANGUL = re.compile(r"[\uac00-\ud7a3]")
 FORMATTER = string.Formatter()
+
+
+def target_paths() -> list[Path]:
+    return sorted(
+        path
+        for path in GUI_ROOT.rglob("*.py")
+        if "__pycache__" not in path.parts and path.name not in {"theme.py"}
+    )
+
+
+def _module_key(path: Path) -> str:
+    relative = path.relative_to(GUI_ROOT).with_suffix("")
+    return "_".join(relative.parts)
 
 
 def _placeholders(template: str) -> set[str]:
@@ -129,7 +142,7 @@ def collect(path: Path) -> tuple[list[tuple[ast.AST, str, str]], str]:
                 parents,
                 lambda item: isinstance(item, ast.Call) and _call_name(item) == "tr",
             ):
-                results.append((node, _key(path.stem, template), template))
+                results.append((node, _key(_module_key(path), template), template))
             continue
         if not isinstance(node, ast.Constant) or not isinstance(node.value, str):
             continue
@@ -143,16 +156,114 @@ def collect(path: Path) -> tuple[list[tuple[ast.AST, str, str]], str]:
             lambda item: isinstance(item, ast.Call) and _call_name(item) == "tr",
         ):
             continue
-        results.append((node, _key(path.stem, node.value), node.value))
+        results.append((node, _key(_module_key(path), node.value), node.value))
     return results, source
+
+
+def translation_calls(path: Path) -> list[tuple[int, str]]:
+    return [(line, key) for line, key, _default in translation_entries(path)]
+
+
+def translation_entries(path: Path) -> list[tuple[int, str, str]]:
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    calls: list[tuple[int, str, str]] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or _call_name(node) != "tr" or len(node.args) < 2:
+            continue
+        key = node.args[0]
+        default = node.args[1]
+        if (
+            isinstance(key, ast.Constant)
+            and isinstance(key.value, str)
+            and isinstance(default, ast.Constant)
+            and isinstance(default.value, str)
+        ):
+            calls.append((node.lineno, key.value, default.value))
+    return calls
+
+
+def presentation_error_codes() -> list[tuple[Path, int, str]]:
+    results: list[tuple[Path, int, str]] = []
+    package = ROOT / "webpentestkit"
+    for path in sorted(package.rglob("*.py")):
+        source = path.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or _call_name(node) != "KitError":
+                continue
+            for keyword in node.keywords:
+                if keyword.arg != "code":
+                    continue
+                value = keyword.value
+                if (
+                    isinstance(value, ast.Constant)
+                    and isinstance(value.value, str)
+                    and value.value.startswith("PRESENTATION_")
+                ):
+                    results.append((path, node.lineno, value.value))
+    return results
+
+
+def presentation_error_entries() -> list[tuple[Path, int, str, str]]:
+    results: list[tuple[Path, int, str, str]] = []
+    package = ROOT / "webpentestkit"
+    for path in sorted(package.rglob("*.py")):
+        source = path.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or _call_name(node) != "KitError":
+                continue
+            message = node.args[0] if node.args else None
+            if not isinstance(message, ast.Constant) or not isinstance(message.value, str):
+                continue
+            for keyword in node.keywords:
+                if (
+                    keyword.arg == "code"
+                    and isinstance(keyword.value, ast.Constant)
+                    and isinstance(keyword.value.value, str)
+                    and keyword.value.value.startswith("PRESENTATION_")
+                ):
+                    results.append((path, node.lineno, keyword.value.value, message.value))
+    return results
+
+
+def presentation_contract_entries() -> dict[str, str]:
+    """Return fixed role and slot labels declared by the presentation contract."""
+
+    tree = ast.parse(PRESENTATION_CONTRACT.read_text(encoding="utf-8"))
+    entries: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+            continue
+        if node.func.id not in {"_role", "_slot"} or len(node.args) < 3:
+            continue
+        code, label, description = (ast.literal_eval(item) for item in node.args[:3])
+        if not all(isinstance(item, str) for item in (code, label, description)):
+            raise ValueError("presentation role and slot labels must use string literals")
+        if node.func.id == "_role":
+            key = code.replace("-", "_")
+            entries[f"presentations.role.{key}"] = label
+            entries[f"presentations.roleDescription.{key}"] = description
+        else:
+            key = code.replace(".", "_")
+            entries[f"presentations.slot.{key}"] = label
+            entries[f"presentations.slotDescription.{key}"] = description
+    # evidence.N is an indexed slot family rather than a single SlotSpec.
+    entries.update(
+        {
+            "presentations.slot.evidence": "증적 이미지",
+            "presentations.slotDescription.evidence": "보고서용 이미지 증적",
+        }
+    )
+    return entries
 
 
 def wrap() -> int:
     catalog = json.loads(KO_CATALOG.read_text(encoding="utf-8"))
     messages = catalog["messages"]["ui"]
     total = 0
-    for filename in TARGET_FILES:
-        path = GUI_ROOT / filename
+    for path in target_paths():
         nodes, source = collect(path)
         if not nodes:
             continue
@@ -188,8 +299,7 @@ def wrap() -> int:
 
 def audit() -> int:
     failures: list[str] = []
-    for filename in TARGET_FILES:
-        path = GUI_ROOT / filename
+    for path in target_paths():
         nodes, _source = collect(path)
         for node, _key_value, default in nodes:
             preview = default.replace("\n", " ")[:80]
@@ -203,6 +313,24 @@ def audit() -> int:
         return 1
     korean = json.loads(KO_CATALOG.read_text(encoding="utf-8"))
     english = json.loads(EN_CATALOG.read_text(encoding="utf-8"))
+    korean_ui = korean["messages"]["ui"]
+    for key, default in presentation_contract_entries().items():
+        if key not in korean_ui:
+            failures.append(f"presentation contract missing ui.{key}")
+        elif korean_ui[key] != default:
+            failures.append(f"presentation contract default mismatch in ui.{key}")
+    for path in target_paths():
+        for line, key in translation_calls(path):
+            if key not in korean_ui:
+                failures.append(
+                    f"{path.relative_to(ROOT)}:{line}: language pack missing ui.{key}"
+                )
+    korean_errors = korean["messages"]["errors"]
+    for path, line, code in presentation_error_codes():
+        if code not in korean_errors:
+            failures.append(
+                f"{path.relative_to(ROOT)}:{line}: language pack missing errors.{code}"
+            )
     for domain in ("ui", "errors"):
         korean_messages = korean["messages"][domain]
         english_messages = english.get("messages", {}).get(domain, {})
@@ -232,20 +360,35 @@ def audit() -> int:
 
 def build() -> int:
     korean = json.loads(KO_CATALOG.read_text(encoding="utf-8"))
+    existing_english = (
+        json.loads(EN_CATALOG.read_text(encoding="utf-8"))
+        if EN_CATALOG.is_file()
+        else {"messages": {"ui": {}, "errors": {}}}
+    )
     translations: dict[str, str] = {}
+    key_translations: dict[str, str] = {}
     errors: dict[str, str] = {}
     for path in sorted(EN_SOURCE.glob("*.json")):
         source = json.loads(path.read_text(encoding="utf-8"))
         translations.update(source.get("sources", {}))
+        key_translations.update(source.get("keys", {}))
         errors.update(source.get("errors", {}))
+    existing_ui = existing_english.get("messages", {}).get("ui", {})
     missing = sorted(
-        set(korean["messages"]["ui"].values()) - set(translations)
+        key
+        for key, value in korean["messages"]["ui"].items()
+        if key not in key_translations
+        and value not in translations
+        and key not in existing_ui
     )
     if missing:
-        for text in missing:
-            print(f"missing source translation: {text!r}")
+        for key in missing:
+            print(f"missing source translation for key: {key}")
         return 1
-    missing_errors = sorted(set(korean["messages"]["errors"]) - set(errors))
+    existing_errors = existing_english.get("messages", {}).get("errors", {})
+    missing_errors = sorted(
+        set(korean["messages"]["errors"]) - set(errors) - set(existing_errors)
+    )
     if missing_errors:
         for key in missing_errors:
             print(f"missing error translation: {key}")
@@ -257,12 +400,12 @@ def build() -> int:
         "fallback": "ko-KR",
         "messages": {
             "ui": {
-                key: translations[value]
+                key: key_translations.get(key, translations.get(value, existing_ui.get(key, value)))
                 for key, value in korean["messages"]["ui"].items()
             },
             "errors": {
-                key: errors[key]
-                for key in korean["messages"]["errors"]
+                key: errors.get(key, existing_errors.get(key, value))
+                for key, value in korean["messages"]["errors"].items()
             },
         },
     }
@@ -274,14 +417,64 @@ def build() -> int:
     return 0
 
 
+def sync() -> int:
+    """Add statically declared UI and presentation error defaults to ko-KR."""
+
+    catalog = json.loads(KO_CATALOG.read_text(encoding="utf-8"))
+    ui = catalog["messages"]["ui"]
+    errors = catalog["messages"]["errors"]
+    ui_added = 0
+    ui_updated = 0
+    errors_added = 0
+    conflicts: list[str] = []
+    original_ui = set(ui)
+    for path in target_paths():
+        for line, key, default in translation_entries(path):
+            existing = ui.get(key)
+            if key in original_ui and existing is not None and existing != default:
+                conflicts.append(
+                    f"{path.relative_to(ROOT)}:{line}: ui.{key} default differs from catalog"
+                )
+            elif existing is None:
+                ui[key] = default
+                ui_added += 1
+    for key, default in presentation_contract_entries().items():
+        existing = ui.get(key)
+        if existing is None:
+            ui[key] = default
+            ui_added += 1
+        elif existing != default:
+            ui[key] = default
+            ui_updated += 1
+    for path, line, code, default in presentation_error_entries():
+        existing = errors.get(code)
+        if existing is None:
+            errors[code] = default
+            errors_added += 1
+    if conflicts:
+        print("\n".join(conflicts))
+        return 1
+    KO_CATALOG.write_text(
+        json.dumps(catalog, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(
+        f"added {ui_added} UI messages, updated {ui_updated} contract messages, "
+        f"and added {errors_added} presentation errors"
+    )
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=("audit", "build", "wrap"))
+    parser.add_argument("command", choices=("audit", "build", "sync", "wrap"))
     args = parser.parse_args()
     if args.command == "audit":
         return audit()
     if args.command == "build":
         return build()
+    if args.command == "sync":
+        return sync()
     return wrap()
 
 

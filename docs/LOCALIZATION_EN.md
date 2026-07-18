@@ -102,16 +102,23 @@ the build command.
 
 ```powershell
 python tools/i18n.py wrap
+python tools/i18n.py sync
 python tools/i18n.py build
 python tools/i18n.py audit
 ```
 
 - `wrap` converts remaining Korean literals in Qt GUI files to `tr()` calls
   with stable generated keys. Run it once after adding new text.
-- `build` combines the Korean catalog with the source translations under
-  `translations/en-US` to generate `webpentestkit/locales/en-US.json`.
-- `audit` checks for unmapped Korean UI text, key differences between catalogs,
-  remaining Korean in the English pack, and placeholder mismatches.
+- `sync` adds statically declared `tr()` defaults under `qt_gui/**/*.py`,
+  `PRESENTATION_*` error defaults, and dynamically declared role/slot labels
+  from `presentation_engine/contracts.py` to the Korean catalog.
+- `build` combines semantic `keys`, legacy text-based `sources`, and `errors`
+  under `translations/en-US` to generate `webpentestkit/locales/en-US.json`.
+  Semantic key translations take precedence and existing English translations
+  are preserved.
+- `audit` recursively checks Qt GUI modules for missing keys, presentation error
+  codes, contract/catalog mismatches, key differences between catalogs, Korean
+  text left in the English pack, and placeholder mismatches.
 
 Generated keys use a hash of the source wording. Do not arbitrarily change an
 existing key when its translation or wording changes. Prefer meaningful manual

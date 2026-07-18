@@ -1,11 +1,11 @@
 <div align="center">
   <img src="docs/assets/otter-logo.png" width="128" alt="Otter logo">
   <h1>Otter</h1>
-  <p><strong>From finding to report, without copying evidence between tools.</strong></p>
-  <p>A local-first desktop workspace for authorized web security assessments.</p>
+  <p><strong>From finding to delivery, with every piece of evidence traceable.</strong></p>
+  <p>A portable, local-first desktop workspace for authorized web security assessments.</p>
   <p>
-    <img alt="Beta version" src="https://img.shields.io/badge/version-0.1.0b1%20beta-F59E0B">
-    <a href="https://github.com/Insu-Cho/Otter/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Insu-Cho/Otter/actions/workflows/ci.yml/badge.svg"></a>
+    <a href="https://github.com/i44n/Otter/releases/tag/v0.1.0b1"><img alt="Beta version" src="https://img.shields.io/badge/version-0.1.0b1%20beta-F59E0B"></a>
+    <a href="https://github.com/i44n/Otter/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/i44n/Otter/actions/workflows/ci.yml/badge.svg"></a>
     <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
     <img alt="Qt for Python" src="https://img.shields.io/badge/UI-PySide6-41CD52?logo=qt&logoColor=white">
     <img alt="Platforms" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey">
@@ -19,25 +19,54 @@
 
 ![Otter dashboard showing assessment metrics, severity distribution, and recent findings](docs/assets/screenshots/otter-dashboard.png)
 
-Otter keeps targets, findings, reproduction procedures, evidence, finding-level
-retests, reusable vulnerability guidance, and report outputs in one structured
-workspace. Data stays local by default and a project can be sealed into an
-encrypted `.wpkproj` container.
+Otter is built for consultants and small security teams that want disciplined
+assessment records without operating a shared web platform. A project keeps its
+targets, findings, procedures, evidence, retests, and delivery settings together
+as auditable files, and can be sealed into a portable encrypted `.wpkproj`
+container.
 
-Otter organizes assessment work. It does **not** scan targets or run attacks.
+Instead of treating evidence as an attachment added at the end, Otter records why
+each asset is used: in the finding narrative, technical analysis, a reproduction
+step, or a retest. The same traceable record drives validation and every output.
+
+Otter organizes human-led assessment work. It does **not** scan targets, import
+scanner fleets, or run attacks.
 
 ## Why Otter?
 
-- **One structured finding record** — affected request, impact, remediation,
-  technical analysis, reproduction procedure, retest history, and linked evidence.
-- **Evidence with traceable purpose** — classify an asset once, then link it to a
-  finding body, technical details, a procedure step, or a retest without copying it.
-- **Delivery confidence** — validate project data and evidence policy before
-  generating Markdown, CSV, and a presentation-ready data bundle.
-- **Local-first security** — work without a server, encrypt project containers,
-  and keep assessment credentials in a separate authenticated vault.
-- **Reusable knowledge** — search, review, update, archive, and transfer a
-  versioned vulnerability library.
+- **Finding-to-evidence traceability** — keep affected requests, impact,
+  remediation, analysis, procedures, retests, and evidence usage in one record.
+- **Evidence without duplication** — classify an asset once, then reuse it across
+  narrative, technical, procedure, and retest scopes with a caption and placement
+  specific to each usage.
+- **A delivery gate, not just an export button** — validate required content,
+  evidence disclosure, broken links, and project security before generating files.
+- **Portable security boundaries** — work without a server, encrypt the complete
+  project, and keep assessment credentials in a separately authenticated vault.
+- **Auditable, regenerable outputs** — readable project files remain the source of
+  truth; Markdown, CSV, validation, and presentation material are derived outputs.
+- **Reusable reviewed knowledge** — maintain a searchable, versioned finding
+  library without mixing customer data into the knowledge database.
+
+## Where Otter fits
+
+Otter deliberately chooses a different operating model from server-centric
+vulnerability managers and collaborative report portals.
+
+| Design question | Otter's answer |
+|---|---|
+| Where does assessment data live? | In a portable local project, optionally sealed as an encrypted `.wpkproj` file. |
+| What is the primary unit of work? | A tester-authored finding with procedures, retests, and explicit evidence links. |
+| How is evidence handled? | As a reusable asset with independent disclosure classification and scope-specific usage metadata. |
+| When is output checked? | Before delivery, through structural, content, evidence-policy, and project-security validation. |
+| What owns the source of truth? | Auditable JSON and evidence files; generated reports can be rebuilt. |
+| What infrastructure is required? | A desktop Python environment—no application server, PostgreSQL, Docker, or user administration. |
+
+Otter is a strong fit for offline or on-site work, solo consultants and small
+teams, evidence-heavy web assessments, and engagements where credentials and raw
+evidence should not leave the operator's machine. A server platform is likely a
+better fit when you need real-time multi-user editing, enterprise remediation
+tracking, scanner aggregation, SSO/RBAC, or portfolio-wide dashboards.
 
 ## See the workflow
 
@@ -72,8 +101,10 @@ CWE references, tags, review metadata, and history in the finding library.
 
 ### Validate before delivery
 
-Review data-quality and evidence-policy findings, confirm report readiness, generate
-Markdown and CSV outputs, and export structured content for presentation creation.
+Review data-quality and evidence-policy issues, confirm deliverable readiness,
+generate Markdown and CSV outputs, and produce a final PowerPoint file from a
+registered company template. Template setup lives in a global workspace; deck
+generation and review stay with the project deliverables.
 
 ![Validation and report readiness overview](docs/assets/screenshots/otter-validation-reports.png)
 
@@ -95,7 +126,7 @@ Requirements:
 ### Windows
 
 ```powershell
-git clone https://github.com/Insu-Cho/Otter.git
+git clone https://github.com/i44n/Otter.git
 cd Otter
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -106,7 +137,7 @@ python .\otter.py gui
 ### macOS
 
 ```bash
-git clone https://github.com/Insu-Cho/Otter.git
+git clone https://github.com/i44n/Otter.git
 cd Otter
 python3 -m venv .venv
 source .venv/bin/activate
@@ -130,8 +161,11 @@ python .\examples\open_sample_gui.py
 3. Record technical analysis and reproducible steps.
 4. Add evidence once and link it to the scopes where it is used.
 5. Record finding-level retests with supporting evidence.
-6. Validate the project and review security or content recommendations.
-7. Generate Markdown/CSV reports and export the PPT-ready bundle.
+6. Review deliverable readiness and resolve security or content issues.
+7. Generate Markdown/CSV documents and data or export the legacy PPT-ready bundle.
+8. Prepare a company PPTX in project-independent **Shared libraries > PowerPoint templates**,
+   then select it under project **Deliverables**, review the render plan, and
+   create the final `.pptx`.
 
 ## Outputs
 
@@ -142,10 +176,29 @@ Otter currently generates:
 - findings CSV;
 - a localized validation report;
 - a presentation-ready folder with `slides.json`, SVG charts, finding content,
-  and curated report-ready evidence.
+  and curated report-ready evidence for backward compatibility;
+- a template-driven final `.pptx` plus a render manifest containing template,
+  profile, Report IR, plan hashes, page provenance, and warnings.
 
-The beta does not render a finished `.pptx` file. The exported bundle is designed
-for a separate presentation-production step.
+PPT Studio exposes only reserved roles and semantic slots, derives binding
+types automatically, previews slide geometry, and stores reusable profiles in an
+application-level linked-template library. Profile format v5 supports one to
+twelve procedure content regions and optional story-level layout-set selection.
+Text capacity is estimated numerically per mapped shape and checked against the
+actual slot text. Page types describe primary/continuation/static pages and
+evidence capacity; Story flow orders fixed roles. Profile v1/v2/v3/v4 files are migrated and unsupported legacy
+mappings are quarantined for review.
+
+Finding results are modeled independently from procedure steps. Link each evidence
+asset once to its result, procedure step, technical detail, retest, appendix, or
+attachment usage. Plan format v2 keeps ordered content blocks on each page, so the
+planner can form variable procedure groups such as `2·1·1·2·1` and add continuation
+slides only when mapped text or evidence capacity requires them.
+
+The template-driven renderer supports mapped text and image shapes, including
+ordinary rectangle/text shapes used as evidence frames. Charts, OLE/think-cell,
+SmartArt, and animations are preserve-only until explicit editing support is
+implemented.
 
 ## Project and security model
 

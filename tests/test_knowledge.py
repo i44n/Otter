@@ -8,7 +8,7 @@ from pathlib import Path
 
 from webpentestkit.errors import KitError
 from webpentestkit.knowledge import KnowledgeService
-from webpentestkit.models import VulnerabilityTemplateInput
+from webpentestkit.models import ProcedureStepInput, VulnerabilityTemplateInput
 from webpentestkit.services import ProjectService
 
 
@@ -108,6 +108,66 @@ class KnowledgeBaseTest(unittest.TestCase):
         self.assertNotIn("evidence", columns)
         self.assertNotIn("affected_url", columns)
         self.assertNotIn("Sensitive Customer Name", self.database.read_bytes().decode("utf-8", errors="ignore"))
+
+    def test_approved_template_creates_atomic_finding_bundle(self) -> None:
+        project_service = ProjectService.create_project(
+            self.root / "bundle-project",
+            "KNOWLEDGE-BUNDLE",
+            "Knowledge Bundle Test",
+        )
+        project_service.create_target(
+            "WEB-01", "Portal", "https://portal.example.test"
+        )
+        template = self.knowledge.get_template("WPK-INJECTION-001")
+        finding, procedure = self.knowledge.create_finding_bundle_from_template(
+            project_service,
+            template.id,
+            "WEB-01",
+            version=template.version,
+            finding_values={
+                "title": "Audit search SQL injection",
+                "status": "Confirmed",
+                "url": "https://portal.example.test/api/audit/search",
+                "method": "GET",
+                "parameter": "query",
+            },
+            preconditions="Use an approved test account.",
+            steps=(
+                ProcedureStepInput(
+                    title="Send the test expression",
+                    action="Send a non-destructive expression.",
+                ),
+            ),
+        )
+        self.assertEqual(finding.template.id, template.id)
+        self.assertEqual(finding.template.version, template.version)
+        self.assertEqual(finding.cvss.vector, template.cvss_vector)
+        self.assertEqual(procedure.steps[0].title, "Send the test expression")
+
+    def test_non_approved_template_cannot_create_project_finding(self) -> None:
+        draft = self.knowledge.add_template_version(
+            VulnerabilityTemplateInput(
+                id="WPK-DRAFT-001",
+                name="Draft finding",
+                title="Draft finding",
+                category="Other",
+                summary="Draft summary.",
+                impact="Draft impact.",
+                remediation="Draft remediation.",
+                status="Draft",
+            )
+        )
+        project_service = ProjectService.create_project(
+            self.root / "draft-project", "DRAFT-T", "Draft Test"
+        )
+        project_service.create_target(
+            "WEB-01", "Portal", "https://portal.example.test"
+        )
+        with self.assertRaises(KitError) as error:
+            self.knowledge.create_finding_from_template(
+                project_service, draft.id, "WEB-01"
+            )
+        self.assertEqual(error.exception.code, "TEMPLATE_NOT_APPROVED")
 
     def test_template_can_be_updated_archived_restored_and_deleted(self) -> None:
         created = self.knowledge.add_template_version(
@@ -274,6 +334,55 @@ class KnowledgeBaseTest(unittest.TestCase):
             self.knowledge.get_template("WPK-CUSTOM-ROLLBACK-001", 1)
         self.assertEqual(missing.exception.code, "TEMPLATE_NOT_FOUND")
         self.assertEqual(list(self.root.glob(".knowledge-import-*.db")), [])
+
+    def test_legacy_archived_templates_are_restored_for_direct_delete_ui(self) -> None:
+        template_id = "WPK-ACCESS-001"
+        self.knowledge.archive_template(template_id)
+        self.assertTrue(self.knowledge.get_template(template_id).archived)
+        connection = sqlite3.connect(self.database)
+        try:
+            connection.execute(
+                "DELETE FROM metadata WHERE key = 'direct_delete_migration_applied'"
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        reopened = KnowledgeService.open(self.database)
+        restored = reopened.get_template(template_id)
+        self.assertFalse(restored.archived)
+        self.assertIn(template_id, [item.id for item in reopened.search_templates()])
+
+    def test_deleting_every_template_does_not_reseed_on_reopen(self) -> None:
+        for template in self.knowledge.search_templates():
+            self.knowledge.delete_template(template.id)
+        self.assertEqual(self.knowledge.search_templates(), [])
+
+        reopened = KnowledgeService.open(self.database)
+        self.assertEqual(reopened.search_templates(), [])
+
+    def test_imported_archive_flag_is_normalized_to_active(self) -> None:
+        bundle_path = self.root / "archived-import.json"
+        self.knowledge.export_bundle(bundle_path)
+        bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+        source = dict(bundle["templates"][0])
+        source.update(
+            {
+                "id": "WPK-IMPORTED-001",
+                "name": "Imported entry",
+                "title": "Imported entry",
+                "archived": True,
+            }
+        )
+        bundle["templates"] = [source]
+        bundle_path.write_text(
+            json.dumps(bundle, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        result = self.knowledge.import_bundle(bundle_path)
+        self.assertEqual(result.added_versions, 1)
+        self.assertFalse(self.knowledge.get_template("WPK-IMPORTED-001").archived)
 
 
 if __name__ == "__main__":

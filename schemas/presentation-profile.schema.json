@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Otter Presentation Template Profile v5",
+  "type": "object",
+  "required": ["formatVersion", "id", "name", "templateHash", "families", "storyRecipe", "layouts"],
+  "properties": {
+    "formatVersion": { "const": 5 },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "templateHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "families": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "storyRecipe": {
+      "type": "object",
+      "required": ["document", "finding", "appendix"],
+      "properties": {
+        "document": { "$ref": "#/$defs/recipeNodes" },
+        "finding": { "$ref": "#/$defs/recipeNodes" },
+        "appendix": { "$ref": "#/$defs/recipeNodes" }
+      },
+      "additionalProperties": false
+    },
+    "layouts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "familyId", "role", "variant", "sourceSlide", "bindings"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "familyId": { "type": "string", "minLength": 1 },
+          "role": { "$ref": "#/$defs/role" },
+          "sourceSlide": { "type": "integer", "minimum": 1 },
+          "composition": {
+            "type": "object",
+            "properties": {
+              "itemCapacity": { "type": "integer", "minimum": 1, "maximum": 12 },
+              "itemEvidenceCapacity": {
+                "type": "array",
+                "items": { "type": "integer", "minimum": 0 },
+                "minItems": 1,
+                "maxItems": 12
+              }
+            },
+            "additionalProperties": true
+          },
+          "variant": {
+            "type": "object",
+            "required": ["kind", "textDensity", "priority", "conditions"],
+            "properties": {
+              "kind": { "enum": ["primary", "continuation", "static"] },
+              "textDensity": { "enum": ["short", "regular", "long"] },
+              "priority": { "type": "integer" },
+              "conditions": {
+                "type": "object",
+                "properties": {
+                  "minEvidence": { "type": "integer", "minimum": 0 },
+                  "maxEvidence": { "type": "integer", "minimum": 0 },
+                  "maxTextChars": { "type": "integer", "minimum": 1 },
+                  "requiredValues": { "type": "array", "items": { "type": "string" } }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "capacity": {
+            "type": "object",
+            "properties": {
+              "evidence": { "type": "integer", "minimum": 0 },
+              "items": { "type": "integer", "minimum": 1, "maximum": 12 }
+            },
+            "additionalProperties": true
+          },
+          "bindings": {
+            "type": "object",
+            "propertyNames": {
+              "pattern": "^(items\\.(0|[1-9][0-9]*)\\.)?(title|subtitle|classification|sectionTitle|sectionSubtitle|executiveSummary|scope|methodology|projectId|projectName|assessmentPeriod|targetCount|findingCount|critical|high|medium|low|info|id|name|baseUrl|environment|status|targetId|targetName|severity|category|affectedUrl|summary|impact|remediation|rootCause|analysis|preconditions|stepId|stepNumber|stepTitle|action|expectedResult|observedResult|testedAt|tester|result|remediationSummary|verificationDetails|notes|caption|page|evidence\\.(0|[1-9][0-9]*))$"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "required": ["kind", "shapeId"],
+              "properties": {
+                "kind": { "enum": ["text", "image"] },
+                "shapeId": { "type": "integer", "minimum": 1 },
+                "fit": { "enum": ["cover", "contain", "stretch"] },
+                "maxChars": { "type": "integer", "minimum": 1 },
+                "required": { "type": "boolean" },
+                "formatter": { "$ref": "#/$defs/sequenceFormatter" }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "$defs": {
+    "sequenceFormatter": {
+      "type": "object",
+      "required": ["type", "style"],
+      "properties": {
+        "type": { "const": "sequence" },
+        "style": { "enum": ["decimal", "circled", "hangul", "custom"] },
+        "padding": { "type": "integer", "minimum": 0, "maximum": 6 },
+        "prefix": { "type": "string", "maxLength": 32 },
+        "suffix": { "type": "string", "maxLength": 32 },
+        "template": { "type": "string", "minLength": 1, "maxLength": 64 }
+      },
+      "additionalProperties": false
+    },
+    "role": {
+      "enum": [
+        "cover",
+        "section-divider",
+        "executive-summary",
+        "project-overview",
+        "scope-methodology",
+        "severity-summary",
+        "target-summary",
+        "finding-overview",
+        "finding-technical",
+        "finding-procedure",
+        "finding-result",
+        "finding-remediation",
+        "finding-retest",
+        "evidence-appendix",
+        "template-static"
+      ]
+    },
+    "recipeNodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "role", "repeat", "when"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "role": { "$ref": "#/$defs/role" },
+          "familyId": { "type": "string", "minLength": 1 },
+          "repeat": {
+            "enum": ["once", "each-target", "each-procedure-step", "each-retest", "evidence-pages"]
+          },
+          "when": { "enum": ["always", "has-data"] },
+          "enabled": { "type": "boolean" },
+          "title": { "type": "string" },
+          "subtitle": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

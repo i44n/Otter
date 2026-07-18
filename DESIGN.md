@@ -51,33 +51,97 @@ CSV, Markdown 현황표와 PPT Export 결과는 파생 데이터입니다. 파�
              ↓
           validate/render
              ↓
-  ┌──────────┴──────────┐
-  ↓                     ↓
-CSV/Markdown       PPT-ready bundle
-                   ├─ slides.json
-                   ├─ SVG charts
-                   └─ curated evidence
+  ┌──────────┴─────────────────────────┐
+  ↓                                    ↓
+CSV/Markdown                 semantic Report IR v2
+                                      ↓
+                         Template Profile + Render Plan
+                                      ↓
+                         owned OOXML presentation engine
+                                      ↓
+                         final PPTX + Render Manifest
 ```
 
 ## PPT 생성기와의 경계
 
-키트 본체는 특정 회사 PPT 레이아웃을 알지 못합니다. `slides.json`이 표준 중간 규격 역할을 하며, 별도 PPT 생성기가 슬라이드 타입에 맞는 회사 템플릿 레이아웃을 선택합니다.
+공통 보고서 뷰는 특정 회사 레이아웃이나 페이지 수를 알지 못하는 의미 기반
+`Report IR v2`를 만듭니다. 사용자는 프로젝트와 독립적인 **공용 라이브러리 > PPT 템플릿**에서
+템플릿의 예시 슬라이드와 일반 도형을 의미 슬롯에 연결해 `Template Profile`을
+만듭니다. 프로젝트의 **산출물 > PPT 생성·검토**에서 Planner가 실제
+슬라이드 순서·레이아웃·증적 배치를 담은 `Render Plan`을 생성합니다. 사용자는
+계획에서 슬라이드 순서, 포함 여부, 이미지 fit과 초점 위치를 조정할 수 있습니다.
 
-기본 슬라이드 타입:
+`presentation_engine/`은 원본 PPTX의 마스터, 레이아웃과 미지원 패키지 부분을
+보존하면서 매핑된 텍스트와 이미지 영역만 수정합니다. OLE, think-cell, SmartArt,
+차트와 애니메이션은 초기 지원 범위에서 내부 값을 변경하지 않고 preserve-only로
+분류합니다.
+
+역할·의미 슬롯·바인딩 종류·이미지 맞춤 방식은
+`presentation_engine/contracts.py`가 단일 계약으로 관리합니다. GUI, 프로필 검증,
+플래너와 언어팩은 같은 계약을 사용하며 임의 역할이나 슬롯은 렌더 단계까지
+전파되지 않습니다. Profile v5는 의미 역할과 페이지 분할 방식을 분리하고 각
+레이아웃의 `composition.itemCapacity`와 `items.N.*` 슬롯으로 한 슬라이드에 들어갈
+콘텐츠 영역을 1~12개로 명시합니다. 이 반복 영역 편집은 현재 여러 절차를 한 장에
+배치하는 `finding-procedure`에서만 노출됩니다. 각 텍스트 바인딩의 `maxChars`는
+도형 크기에서 자동 추정하고 Planner는 실제 슬롯 문자열 길이를 이 수치와 비교합니다.
+`stepNumber`에는 선택적으로 안전한 sequence
+`formatter`를 연결할 수 있으며, 같은 슬라이드 유형의 `items.N.stepNumber`에는 GUI가
+동일 형식을 전파합니다. 내부 `STEP-###` ID와 정렬 값은 표시 형식과 분리됩니다.
+과거 `textDensity`는 호환 필드로만 유지합니다.
+
+내부 `Layout Family`는 같은 시각 양식의 레이아웃 세트입니다. 일반 매핑 화면에서는
+별도 편집 항목으로 노출하지 않고 역할별 기본 세트를 자동 생성합니다. `Story Recipe`
+노드의 선택적 `familyId`만 특정 세트로 자동 선택 범위를 제한하며, 지정하지 않으면
+해당 역할의 모든 레이아웃을 비교합니다. 각 레이아웃의 `Variant`는
+기본·연속·원본 고정 페이지와 영역별 증적 용량·선택 조건을 표현합니다. `Story Recipe`는 고정
+역할을 문서·취약점·부록 그룹에서 어떤 순서와 반복 규칙으로 전개할지 정의합니다.
+사용자는 전개 순서와 자동 선택 세트는 구성할 수 있지만 역할·슬롯·Variant·반복·조건
+코드는 예약된 계약 값만 선택합니다.
+
+`finding-result`는 절차의 마지막 단계가 아니라 취약점의 최종 관찰 결과와 결과
+증적을 담는 독립 역할입니다. 절차 단계 수와 증적 수는 데이터에 따라 늘어나며,
+Planner는 연속 절차 블록의 텍스트와 증적이 각 영역에 맞는지 검사해 가장 큰
+묶음을 선택하므로 페이지 전개는 `2·1·1·2·1`처럼 데이터에 따라 달라집니다.
+Render Plan v2의 `blocks`가 한 페이지에 배치된 절차와 각 증적을 보존하며, 남는
+증적만 연속 페이지로 분할합니다. 같은 물리적 디자인을 절차와 결과에
+재사용하려면 같은 Family 안에서 매핑을 복제한 뒤 역할만 바꿉니다.
+
+v1/v2/v3/v4 프로필은 알려진 역할을 v5 역할·Variant·콘텐츠 구성·선택 세트 계약으로
+자동 변환하며 지원하지 않는 매핑은 `legacyCompatibility`에 격리합니다.
+
+템플릿과 프로필의 SHA-256이 다르면 바로 렌더하지 않고 이전 도형 지문과 새
+템플릿의 도형 이름·유형·문구·좌표를 비교해 자동 복구, 사용자 검토, 누락으로
+분류합니다. 검토 또는 누락 항목이 남은 프로필은 계획 및 렌더를 차단합니다.
+공용 템플릿 라이브러리는 애플리케이션 데이터 영역에 템플릿·프로필 경로만
+등록하고 프로젝트별 Render Plan과 결과 PPTX는 프로젝트 보고서 영역에 둡니다.
+
+기존 `slides.json formatVersion: 1` PPT-ready bundle은 외부 연동 호환성을 위해
+계속 지원합니다.
+
+v5 기본 슬라이드 역할:
 
 - `cover`
+- `section-divider`
+- `executive-summary`
 - `project-overview`
+- `scope-methodology`
 - `severity-summary`
 - `target-summary`
-- `finding-detail`
+- `finding-overview`
 - `finding-technical`
-- `finding-evidence`
 - `finding-procedure`
-- `finding-procedure-evidence`
+- `finding-result`
+- `finding-remediation`
 - `finding-retest`
-- `finding-retest-evidence`
+- `evidence-appendix`
+- `template-static`
 
-이 경계를 유지하면 PowerPoint COM, AppleScript, `python-pptx` 또는 웹 기반 문서 생성기를 교체해도 점검 프로젝트 구조는 바뀌지 않습니다.
+과거 `finding-detail`과 `*-evidence` 값은 기존 외부 PPT 자료 묶음과 v1/v2 Profile
+입력 호환성에만 남습니다. v3에서 증적 연속 페이지는 별도 의미 역할이 아니라
+동일 역할의 `continuation` Variant입니다.
+
+이 경계를 유지하면 렌더러 구현을 교체해도 점검 프로젝트 구조와 Report IR은
+바뀌지 않습니다.
 
 ## 호환성
 

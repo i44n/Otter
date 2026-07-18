@@ -15,6 +15,25 @@ from webpentestkit.cli import build_parser, main
 
 
 class CliServiceIntegrationTest(unittest.TestCase):
+    def test_presentation_commands_are_available(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "presentation",
+                "render",
+                "--project",
+                "project",
+                "--template",
+                "template.pptx",
+                "--profile",
+                "profile.json",
+                "--output",
+                "report.pptx",
+            ]
+        )
+        self.assertEqual((args.command, args.action), ("presentation", "render"))
+        self.assertEqual(args.output, "report.pptx")
+
     def run_cli(self, *arguments: str) -> tuple[int, str]:
         output = io.StringIO()
         with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):

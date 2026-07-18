@@ -37,10 +37,16 @@ and mutation.
 - `security_crypto.py`: Argon2id parameter validation and recovery-key utilities
 - `services.py`: stable `ProjectService` compatibility facade
 - `project_services/`: lifecycle, security, targets, findings, evidence links,
-  procedures, retests, evidence, archive, and reporting rules
+  procedures, retests, evidence, archive, reporting, and presentation rules
 - `reporting.py`: stable compatibility facade for report functions
 - `reporting_core/`: validation, localized report text, shared report views,
-  Markdown/CSV, and PPT bundle generation
+  Markdown/CSV, legacy PPT bundle generation, and semantic Presentation IR
+- `presentation_engine/`: centralized role/slot contracts, v1/v2/v3/v4-to-v5 profile
+  and Plan v1-to-v2 migration, layout-set/Variant/Story Recipe/multi-item validation, template analysis
+  and reconciliation, automatic page planning, OOXML rendering, and output
+  package validation
+- `presentation_library.py`: application-level registry for linked PowerPoint
+  templates and profiles, including change-state detection
 - `locking.py`: reentrant project lock across threads and processes
 - `schema_versions.py`: current project document schema checks
 - `archives.py`: target, finding, and evidence archive and restore
@@ -48,7 +54,7 @@ and mutation.
 - `gui/controller.py`: state boundary between Qt views and services
 - `qt_gui/pages.py`, `qt_gui/dialogs.py`: stable GUI compatibility facades
 - `qt_gui/page_views/`: dashboard, targets, findings, evidence, knowledge,
-  reports, credentials, archive, and settings pages
+  reports, presentation, credentials, archive, and settings pages
 - `qt_gui/dialog_views/`: project, target, finding, evidence, procedure/retest,
   knowledge, credential, and security dialogs
 - `qt_gui/window_workflows/`: feature-specific user-action orchestration exposed
@@ -70,6 +76,24 @@ and mutation.
 
 See [LOCALIZATION_EN.md](LOCALIZATION_EN.md) for language-pack format and the
 separation between UI and report languages.
+
+PowerPoint Profile v5 accepts only the reserved roles, slots, variants, repeat
+rules, and conditions declared in `presentation_engine/contracts.py`. Layout
+Family and layout IDs are profile-owned internal identifiers. Story Recipe orders
+fixed roles and its optional `familyId` limits the planner's candidate set. Keep
+semantic roles independent from evidence pagination; express
+primary and continuation pages as variants. Multi-procedure layouts use
+`composition.itemCapacity` and contiguous `items.N.*` slots; Plan v2 `blocks`
+must preserve source procedure order. For ordinary roles, layout selection uses
+per-binding `maxChars` and actual string lengths rather than a vague short/regular/long
+UI. A `stepNumber` text binding may carry an optional `formatter` object.
+`presentation_engine/formatters.py` validates and renders only declared sequence
+styles and one literal `{number}` token; it never evaluates user code. Planner and
+Renderer must call the same formatter so capacity checks match rendered text.
+Contract changes must update
+`schemas/presentation-profile.schema.json`, Korean and English labels, and
+migration tests together. Profile v1/v2/v3/v4 inputs are upgraded at load time and
+unsupported legacy mappings are quarantined instead of silently discarded.
 
 ## Storage rules
 

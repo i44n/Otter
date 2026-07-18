@@ -56,15 +56,16 @@ The default knowledge database is `%LOCALAPPDATA%\Otter\knowledge.db` on Windows
 
 | Area | What it is for |
 | --- | --- |
-| Dashboard | Review finding counts, severity distribution, missing evidence, and recent changes |
+| Dashboard | Review finding counts, severity distribution, deliverable findings without evidence, and recent changes |
 | Assessment targets | Manage in-scope URLs, environments, and target status |
 | Findings | Search and filter findings; manage details, procedures, retests, and linked evidence |
 | Evidence | Review image, HTTP, and text assets together with every place each asset is used |
 | Credentials and access | Store assessment accounts and secrets in an encrypted vault |
-| Finding library | Maintain reusable finding drafts that are independent of customer projects |
-| Validation and reports | Check data quality and generate Markdown, CSV, and presentation-ready bundles |
+| Shared libraries > Finding library | Maintain reusable finding information shared by every project |
+| Deliverables | Review readiness, generate Markdown/CSV data, and generate or review the project PowerPoint deck |
+| Shared libraries > PowerPoint templates | Manage company PowerPoint content mappings and slide order independently from projects |
 | Archive | Restore or permanently remove archived targets, findings, evidence, and credentials |
-| Settings | Manage UI language, project metadata, report settings, and project protection |
+| Settings | Manage UI language, project metadata, and project protection |
 
 The Findings and Evidence pages use searchable, sortable tables. Double-click a row to open its full detail view. **Back to list**, Esc, or Alt+Left returns to the previous table with its search, sort, selection, and scroll position preserved. You can also drag files onto the Evidence page.
 
@@ -81,7 +82,7 @@ The Findings and Evidence pages use searchable, sortable tables. Double-click a 
 
 ### Change language and theme
 
-Open **Settings**, select English or Korean as the UI language, save, and restart Otter. UI language and report language are separate settings; choose the report language in the project's report settings. The top-bar dark-mode toggle is also remembered between launches.
+Open **Settings**, select English or Korean as the UI language, save, and restart Otter. UI language and generated-copy language are separate settings; choose generated-copy language under **Deliverables > Details**. The top-bar dark-mode toggle is also remembered between launches.
 
 ## Explore the fictional sample
 
@@ -100,10 +101,117 @@ The sample output is written below `examples/generated/acme-shop/` and is ignore
 2. Add every in-scope application on **Assessment targets**.
 3. Create findings directly or start from a reviewed item in the **Finding library**.
 4. Tailor severity, affected URL, role, business impact, and remediation to the assessed system.
-5. Add reproducible steps and technical root-cause analysis.
-6. Register evidence once, classify its disclosure status, and link it to every place where it is used.
+5. Add reproducible steps and technical root-cause analysis. Result evidence on
+   **Result and deliverables** belongs to the finding's final observed result, not to the
+   last procedure step.
+6. Register evidence once, classify its disclosure status, and link it to each
+   result, technical detail, procedure step, or retest where it is used. Selecting
+   a row shows its linked location. Choose show at linked location, evidence
+   appendix, or attachment-only plus a caption and order for each link. The same
+   evidence can have different settings at different linked locations.
 7. Record remediation checks as finding-level retests and attach supporting evidence.
 8. Resolve validation errors, review warnings, and generate the required deliverables.
+9. Prepare a reusable company template in **Shared libraries > PowerPoint templates**.
+   Under project **Deliverables > Generate and review PowerPoint**, select the
+   registered template, review the deck plan and evidence placement, and generate
+   the final `.pptx`.
+
+## Generate PowerPoint from a company template
+
+Template setup and project output are separate. In **PowerPoint templates**, complete
+the guided sequence `1 Import PPTX → 2 Map content → 3 Slide order`.
+That stepper is the only workspace navigation; a duplicate tab bar is not shown. The separate status
+badge—In progress, Review needed, Save needed, or Ready to use—shows readiness.
+Completed steps remain green, while the step currently being viewed has a separate blue fill.
+In the open project's **Deliverables > Generate and review PowerPoint**, use
+`Select template → Create PowerPoint draft → Adjust only what is needed → Generate PowerPoint`.
+
+1. Select the company PPTX under **Template management**. Otter analyzes the file
+   immediately and looks for an existing content mapping for the same template.
+   If one exists, its first slide type appears automatically. Use **Start new
+   content mapping** only when no mapping exists.
+2. Under **Content mapping**, connect each source-slide area to a content field
+   such as title, impact, procedure action, or evidence image. Slide types and
+   content fields come from Otter's fixed lists; users do not create reserved words.
+   The text or image data type follows the selected field automatically. Mapping
+   **Step number** exposes safe presets for decimal, padded decimal, Korean step
+   suffix, `STEP N`, `STEP NN`, circled, and Korean alphabet sequences, plus a
+   custom format containing exactly one `{number}` token. The preview updates
+   immediately, and the same format propagates to repeated procedure regions in
+   the slide type.
+   Drag the horizontal divider between **Slide content regions** and **Selected
+   region content mapping** to change their heights. Otter remembers the divider
+   position, and the default shows at least six content rows.
+3. An **Assessment procedure** slide can contain 1 to 12 procedure regions. Procedure
+   evidence is optional and a step may link multiple items. PowerPoint output uses
+   only report-ready images placed inline; map only as many evidence-image frames
+   as the page should visibly hold. Model the
+   finding result as a separate slide type; duplicate a content mapping when the
+   procedure and result intentionally share the same physical design.
+4. Text mapping estimates a numeric capacity from the shape geometry and font.
+   Short/regular/long categories stay out of the default workflow; the draft step
+   checks actual strings and image capacity again. Internal page-type conditions
+   remain under **Advanced mapping settings**.
+5. **Slide order** starts with a recommended sequence. Open **Edit order** and change document, finding,
+   and appendix slide types only when the company format requires it, then choose
+   **Save template** to make it reusable in every project.
+6. In **Deliverables > Generate and review PowerPoint**, select a template and
+   review the **Output scope** summary. Choose **Change targets** to select target
+   membership with checkboxes; selecting every target normalizes the scope back to
+   all targets. Only included targets' findings, evidence, and summaries enter the deck. Changing the
+   scope requires a new draft, which prevents content from an earlier scope from
+   leaking into the final file. Then choose **Create PowerPoint draft**. Otter checks procedure text and eligible
+   evidence images against each region's capacity, then packs consecutive
+   procedures. Seven steps are not forced into `2·2·2·1`; another template or data
+   set may produce `2·1·1·2·1`.
+7. The slide list and **Selected slide** summary appear only after a draft exists.
+   Open **Fine-tune** only for a slide that should differ from automatic placement.
+   Alternative layouts appear only when available, image controls only when evidence
+   exists, and crop position only for Fill area. Changes save automatically.
+8. Review the preflight summary and generate the PowerPoint file. A render manifest
+   is written next to the final `.pptx`. Use **Import another PowerPoint layout** or
+   **Export a PowerPoint layout copy** when continuing another layout or sharing a copy.
+   Selecting a procedure slide exposes contextual actions on the right to split its
+   procedures into individual slides or merge it with the next procedure slide.
+
+You do not map every evidence image to a final slide manually. Link zero or more
+items to the relevant procedure step and link result evidence to the finding result once.
+The planner selects a capacity-matched slide type, creates continuation pages only
+when needed, and places the independent result after all procedure steps. Reusing
+an asset in several locations does not duplicate its source file.
+
+Use `Ctrl` or `Shift` plus click to select multiple rows in management tables.
+Targets, findings, evidence, credentials, vulnerability templates, and archive
+entries expose a selected count and batch actions. The shared vulnerability library
+does not use the project archive: delete one or more selected templates with one
+confirmation. Findings already copied into projects are unchanged.
+The finding library and credential tables do not auto-select the first row. Because
+evidence IDs restart at `EVD-001` for each finding, the all-evidence table displays
+`finding ID / evidence ID` as its unambiguous reference.
+
+If the linked template changes, its library status becomes **Template changed**.
+**Recover mappings for changed template** compares previous shape fingerprints
+with the new slide geometry and classifies each mapping as automatic, review, or
+missing. Rendering remains blocked until review and missing items are resolved
+in **Content mapping** and the template is saved.
+
+Profile v1/v2/v3/v4 files are upgraded to v5 automatically. Legacy `finding-detail`
+becomes `finding-overview`, while `*-evidence` roles become continuation variants
+of their semantic role. Unsupported legacy values are quarantined for review
+instead of being discarded.
+
+The step-number formatter is an optional v5 binding property, so existing v5
+profiles load unchanged. A legacy `stepNumber` binding without a formatter keeps
+the original plain numeric output.
+
+The same engine is available from the CLI:
+
+```powershell
+python otter.py presentation analyze-template --project PROJECT --template TEMPLATE.pptx --output ANALYSIS.json
+python otter.py presentation create-profile --project PROJECT --template TEMPLATE.pptx --output PROFILE.json
+python otter.py presentation plan --project PROJECT --profile PROFILE.json --output PLAN.json
+python otter.py presentation render --project PROJECT --template TEMPLATE.pptx --profile PROFILE.json --plan PLAN.json --output REPORT.pptx
+```
 
 ## Create and manage a project
 
@@ -139,14 +247,15 @@ A library item is a reusable draft containing a summary, default impact, remedia
 }
 ```
 
-Project findings are independent copies. Editing, archiving, or deleting the library item later does not rewrite findings already created from it.
+Project findings are independent copies. Editing or deleting the library item later does not rewrite findings already created from it.
 
 - **Edit** updates the current library item instead of creating a duplicate current version.
 - **Create finding from this template** opens a new project finding populated with the draft.
-- **Archive** hides the item from the active list; use the Archived filter to restore it.
-- **Delete** permanently removes the item after you re-enter its template ID.
+- **Delete** removes an item after one confirmation; multi-row selection supports the same action.
+- Items archived by an older Otter version are restored to the active list during migration.
+- Default templates are seeded only once, so deleting every item does not recreate them on restart.
 
-Use **Export database** to create a JSON transfer bundle containing reusable guidance only. It does not include customer names, target URLs, project findings, credentials, or evidence. **Import database** merges a trusted bundle transactionally: identical versions are kept, conflicting content aborts the import, and the original database remains unchanged on failure.
+Use **Export library** to create a JSON transfer bundle containing reusable guidance only. It does not include customer names, target URLs, project findings, credentials, or evidence. **Import library** merges a trusted bundle transactionally: identical versions are kept, conflicting content aborts the import, and the original database remains unchanged on failure. Legacy `archived` flags are normalized to active entries.
 
 ## Evidence and evidence links
 
@@ -220,7 +329,11 @@ Open **Validation and reports** before delivery.
 - Validation, report generation, and presentation export run in the background; Otter does not run two such jobs at the same time.
 - Only linked `report-ready` evidence is emitted to deliverables.
 
-Otter currently creates final and summary Markdown reports, target and finding summaries, findings CSV, a localized validation report, and a presentation-ready folder with structured content, SVG charts, and curated evidence. The beta does not render a finished `.pptx` file.
+Otter creates final and summary Markdown reports, target and finding summaries,
+findings CSV, a localized validation report, and the legacy presentation-ready
+bundle. The global Template workspace can analyze a company PPTX and map source
+shapes to semantic slots. The project Deliverables page customizes slide order
+and evidence placement and renders a final `.pptx` with an auditable manifest.
 
 The canonical sources are `finding.json` for finding text, `procedure.json` for reproduction steps, `retests.json` for retest history, and `evidence/evidence.json` plus `evidence/links.json` for evidence and its usages. Generated Markdown views should not be edited as source records.
 

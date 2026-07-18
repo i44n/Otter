@@ -16,6 +16,12 @@ Thumbs.db
 .otter.lock
 artifacts/
 examples/generated/
+tmp/
+*.ppt
+*.pptx
+*.pptm
+*.potx
+*.potm
 deployment/
 dist/
 *.build/
