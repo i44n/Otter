@@ -239,6 +239,7 @@ class ProjectServiceTest(unittest.TestCase):
                 impact="Order and delivery data can be disclosed.",
                 remediation="Authorize every order request against the signed-in customer.",
                 order=30,
+                result_summary="The authorization bypass was reproduced for another customer's order.",
                 template_id="WPK-ACCESS-001",
                 template_version=3,
             )
@@ -248,6 +249,10 @@ class ProjectServiceTest(unittest.TestCase):
         self.assertEqual(finding.tester, "Tester One")
         self.assertEqual(finding.cvss.score, 8.1)
         self.assertEqual(finding.presentation.order, 30)
+        self.assertEqual(
+            finding.presentation.result_summary,
+            "The authorization bypass was reproduced for another customer's order.",
+        )
         self.assertIsNotNone(finding.template)
         self.assertEqual(finding.template.id, "WPK-ACCESS-001")
         self.assertEqual(finding.template.version, 3)

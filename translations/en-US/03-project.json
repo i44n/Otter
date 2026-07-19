@@ -65,7 +65,7 @@
     "reports.overview.documents": "Generate documents/data",
     "reports.overview.presentation": "Generate/review PowerPoint",
     "reports.overview.settings": "Review basic information",
-    "reports.overview.validate": "1  Check readiness",
+    "reports.overview.validate": "Check readiness",
     "reports.tab.externalIntegration": "External integration",
     "targets.empty.title": "No assessment targets yet",
     "targets.empty.description": "Add the first URL or system that is in assessment scope.",

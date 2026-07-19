@@ -134,11 +134,11 @@ In the open project's **Deliverables > Generate and review PowerPoint**, use
    such as title, impact, procedure action, or evidence image. Slide types and
    content fields come from Otter's fixed lists; users do not create reserved words.
    The text or image data type follows the selected field automatically. Mapping
-   **Step number** exposes safe presets for decimal, padded decimal, Korean step
+   **Finding number** or **Step number** exposes safe presets for decimal, padded decimal, Korean step
    suffix, `STEP N`, `STEP NN`, circled, and Korean alphabet sequences, plus a
    custom format containing exactly one `{number}` token. The preview updates
-   immediately, and the same format propagates to repeated procedure regions in
-   the slide type.
+   immediately. Finding- and step-number formats are stored independently, while
+   the step-number format propagates to repeated procedure regions in the slide type.
    Drag the horizontal divider between **Slide content regions** and **Selected
    region content mapping** to change their heights. Otter remembers the divider
    position, and the default shows at least six content rows.
@@ -200,9 +200,9 @@ becomes `finding-overview`, while `*-evidence` roles become continuation variant
 of their semantic role. Unsupported legacy values are quarantined for review
 instead of being discarded.
 
-The step-number formatter is an optional v5 binding property, so existing v5
-profiles load unchanged. A legacy `stepNumber` binding without a formatter keeps
-the original plain numeric output.
+Finding- and step-number formatters are optional v5 binding properties, so existing
+v5 profiles load unchanged. Legacy `findingNumber` and `stepNumber` bindings
+without a formatter keep the original plain numeric output.
 
 The same engine is available from the CLI:
 

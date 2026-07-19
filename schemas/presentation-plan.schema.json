@@ -55,7 +55,6 @@
             "properties": {
               "familyId": { "type": "string" },
               "variantKind": { "enum": ["primary", "continuation", "static"] },
-              "textDensity": { "enum": ["short", "regular", "long"] },
               "evidenceCapacity": { "type": "integer", "minimum": 0 },
               "evidenceCount": { "type": "integer", "minimum": 0 },
               "manual": { "type": "boolean" }

@@ -59,11 +59,11 @@ def capture(sample: Path, output: Path) -> tuple[Path, ...]:
     previous_locale = settings.value("appearance/uiLanguage")
     dark_mode_existed = settings.contains("appearance/darkMode")
     previous_dark_mode = settings.value("appearance/darkMode")
-    splitter_existed = settings.contains("presentations/mappingEditorSplitterState")
-    previous_splitter = settings.value("presentations/mappingEditorSplitterState")
+    splitter_existed = settings.contains("presentations/mappingEditorSplitterStateV2")
+    previous_splitter = settings.value("presentations/mappingEditorSplitterStateV2")
     settings.setValue("appearance/uiLanguage", "ko-KR")
     settings.setValue("appearance/darkMode", False)
-    settings.remove("presentations/mappingEditorSplitterState")
+    settings.remove("presentations/mappingEditorSplitterStateV2")
     settings.sync()
 
     created: list[Path] = []
@@ -235,10 +235,10 @@ def capture(sample: Path, output: Path) -> tuple[Path, ...]:
             settings.remove("appearance/darkMode")
         if splitter_existed:
             settings.setValue(
-                "presentations/mappingEditorSplitterState", previous_splitter
+                "presentations/mappingEditorSplitterStateV2", previous_splitter
             )
         else:
-            settings.remove("presentations/mappingEditorSplitterState")
+            settings.remove("presentations/mappingEditorSplitterStateV2")
         settings.sync()
     return tuple(created)
 

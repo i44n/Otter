@@ -56,23 +56,21 @@
           },
           "variant": {
             "type": "object",
-            "required": ["kind", "textDensity", "priority", "conditions"],
+            "required": ["kind", "priority", "conditions"],
             "properties": {
               "kind": { "enum": ["primary", "continuation", "static"] },
-              "textDensity": { "enum": ["short", "regular", "long"] },
               "priority": { "type": "integer" },
               "conditions": {
                 "type": "object",
                 "properties": {
                   "minEvidence": { "type": "integer", "minimum": 0 },
                   "maxEvidence": { "type": "integer", "minimum": 0 },
-                  "maxTextChars": { "type": "integer", "minimum": 1 },
                   "requiredValues": { "type": "array", "items": { "type": "string" } }
                 },
-                "additionalProperties": false
+                "additionalProperties": true
               }
             },
-            "additionalProperties": false
+            "additionalProperties": true
           },
           "capacity": {
             "type": "object",
@@ -85,7 +83,7 @@
           "bindings": {
             "type": "object",
             "propertyNames": {
-              "pattern": "^(items\\.(0|[1-9][0-9]*)\\.)?(title|subtitle|classification|sectionTitle|sectionSubtitle|executiveSummary|scope|methodology|projectId|projectName|assessmentPeriod|targetCount|findingCount|critical|high|medium|low|info|id|name|baseUrl|environment|status|targetId|targetName|severity|category|affectedUrl|summary|impact|remediation|rootCause|analysis|preconditions|stepId|stepNumber|stepTitle|action|expectedResult|observedResult|testedAt|tester|result|remediationSummary|verificationDetails|notes|caption|page|evidence\\.(0|[1-9][0-9]*))$"
+              "pattern": "^(items\\.(0|[1-9][0-9]*)\\.)?(title|subtitle|classification|sectionTitle|sectionSubtitle|executiveSummary|scope|methodology|projectId|projectName|assessmentPeriod|targetCount|findingCount|critical|high|medium|low|info|id|findingId|findingNumber|findingCode|name|baseUrl|environment|status|targetId|targetName|severity|category|affectedUrl|summary|resultSummary|impact|remediation|rootCause|analysis|preconditions|stepId|stepNumber|stepTitle|action|expectedResult|observedResult|testedAt|tester|result|remediationSummary|verificationDetails|notes|caption|page|evidence\\.(0|[1-9][0-9]*))$"
             },
             "additionalProperties": {
               "type": "object",
@@ -94,7 +92,6 @@
                 "kind": { "enum": ["text", "image"] },
                 "shapeId": { "type": "integer", "minimum": 1 },
                 "fit": { "enum": ["cover", "contain", "stretch"] },
-                "maxChars": { "type": "integer", "minimum": 1 },
                 "required": { "type": "boolean" },
                 "formatter": { "$ref": "#/$defs/sequenceFormatter" }
               },
