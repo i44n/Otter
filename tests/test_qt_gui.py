@@ -315,7 +315,7 @@ class QtGuiTest(unittest.TestCase):
             self.assertEqual(dialog.tabs.currentWidget(), editor)
             self.assertEqual(
                 editor.evidence_links.settings_group.title(),
-                "선택한 증적의 표시 방식",
+                "이 연결 위치에서의 증적 사용",
             )
             self.assertIn("재현 절차", editor.evidence_links.link_context_label.text())
             self.assertEqual(
@@ -740,6 +740,34 @@ class QtGuiTest(unittest.TestCase):
             (evidence[0].id,),
         )
 
+    def test_pending_evidence_uses_stable_name_and_save_state_instead_of_draft_id(self) -> None:
+        source = Path(self.temporary.name) / "pending.png"
+        source.write_bytes(b"pending-evidence")
+        dialog = FindingEditorDialog(self.controller)
+        links = dialog.procedure_editor.evidence_links
+        token = "draft:opaque-internal-token"
+        links._drafts[token] = EvidenceDraft(
+            source_path=str(source),
+            title="권한 우회 응답",
+            evidence_type="screenshot",
+            classification="report-ready",
+        )
+        links.set_selected_ids({token})
+
+        self.assertEqual(links.table.horizontalHeaderItem(1).text(), "증적명")
+        self.assertEqual(links.table.horizontalHeaderItem(4).text(), "저장 상태")
+        self.assertEqual(links.table.item(0, 1).text(), "권한 우회 응답")
+        self.assertEqual(links.table.item(0, 4).text(), "신규")
+        self.assertEqual(
+            links.table.item(0, 0).data(Qt.ItemDataRole.UserRole),
+            token,
+        )
+        visible = " ".join(
+            links.table.item(0, column).text()
+            for column in range(links.table.columnCount())
+        )
+        self.assertNotIn("draft:", visible)
+        self.assertNotIn("draft:", links.current_label.text())
     def test_evidence_editor_and_page_preview_metadata(self) -> None:
         finding = self._create_finding("Evidence workflow")
         source = Path(self.temporary.name) / "response.http"
@@ -1773,6 +1801,69 @@ class QtGuiTest(unittest.TestCase):
         self.assertEqual(page.output_template_combo.currentIndex(), 1)
         self.assertEqual(requested, [])
 
+    def test_output_library_refresh_tracks_latest_managed_version(self) -> None:
+        page = PresentationsPage(mode="output")
+        page.set_path("template", "managed/v1/template.pptx")
+        page.set_path("profile", "managed/v1/profile.json")
+        page.set_profile(
+            {
+                "formatVersion": 1,
+                "id": "sample",
+                "name": "Sample",
+                "templateHash": "a" * 64,
+                "story": {"document": [], "finding": ["finding-detail"]},
+                "layouts": [],
+            }
+        )
+        requested: list[str] = []
+        page.load_profile_requested.connect(requested.append)
+        page.set_template_library(
+            [
+                {
+                    "id": "managed",
+                    "name": "Managed",
+                    "status": "ready",
+                    "version": 1,
+                    "layoutCount": 0,
+                    "templatePath": "managed/v1/template.pptx",
+                    "profilePath": "managed/v1/profile.json",
+                    "versions": [
+                        {
+                            "version": 1,
+                            "templatePath": "managed/v1/template.pptx",
+                            "profilePath": "managed/v1/profile.json",
+                        }
+                    ],
+                }
+            ]
+        )
+        self.assertEqual(requested, [])
+
+        page.set_template_library(
+            [
+                {
+                    "id": "managed",
+                    "name": "Managed",
+                    "status": "ready",
+                    "version": 2,
+                    "layoutCount": 1,
+                    "templatePath": "managed/v2/template.pptx",
+                    "profilePath": "managed/v2/profile.json",
+                    "versions": [
+                        {
+                            "version": 1,
+                            "templatePath": "managed/v1/template.pptx",
+                            "profilePath": "managed/v1/profile.json",
+                        }
+                    ],
+                }
+            ]
+        )
+        self.assertEqual(page.output_template_combo.currentIndex(), 1)
+        self.assertEqual(page.template_edit.text(), "managed/v2/template.pptx")
+        self.assertEqual(page.profile_edit.text(), "managed/v2/profile.json")
+        self.assertEqual(requested, ["managed/v2/profile.json"])
+
     def test_presentations_page_maps_regular_shapes_to_semantic_slots(self) -> None:
         page = PresentationsPage()
         page.set_project_open(True)
@@ -1823,9 +1914,6 @@ class QtGuiTest(unittest.TestCase):
         page.variant_kind_combo.setCurrentIndex(
             page.variant_kind_combo.findData("continuation")
         )
-        page.text_density_combo.setCurrentIndex(
-            page.text_density_combo.findData("long")
-        )
         page.shape_table.selectRow(0)
         page.slot_combo.setCurrentIndex(page.slot_combo.findData("title"))
         page.bind_shape_button.click()
@@ -1841,7 +1929,7 @@ class QtGuiTest(unittest.TestCase):
         self.assertEqual(profile["formatVersion"], 5)
         self.assertEqual(layout["familyId"], "finding-flow")
         self.assertEqual(layout["variant"]["kind"], "continuation")
-        self.assertEqual(layout["variant"]["textDensity"], "long")
+        self.assertNotIn("textDensity", layout["variant"])
         self.assertEqual(layout["sourceSlide"], 1)
         self.assertEqual(layout["capacity"]["evidence"], 1)
         self.assertEqual(layout["bindings"]["evidence.0"]["shapeId"], 4)
@@ -2023,8 +2111,10 @@ class QtGuiTest(unittest.TestCase):
                 Qt.Orientation.Vertical,
             )
             self.assertFalse(studio.mapping_editor_splitter.childrenCollapsible())
-            self.assertGreaterEqual(studio.shape_table.minimumHeight(), 202)
-            self.assertGreaterEqual(studio.binding_scroll.minimumHeight(), 132)
+            self.assertGreaterEqual(studio.shape_table.minimumHeight(), 168)
+            self.assertGreaterEqual(studio.binding_scroll.minimumHeight(), 252)
+            self.assertTrue(studio.update_layout_button.isHidden())
+            self.assertEqual(studio.save_profile_button.text(), "\ubaa8\ub4e0 \ubcc0\uacbd \uc800\uc7a5")
             self.assertGreaterEqual(
                 studio.findChild(QFrame, "slidePreviewCard").minimumWidth(), 480
             )
@@ -2098,6 +2188,9 @@ class QtGuiTest(unittest.TestCase):
         self.assertFalse(page.item_capacity_spin.isHidden())
         page.item_capacity_spin.setValue(3)
         page.family_combo.setEditText("procedure")
+        self.assertGreaterEqual(page.slot_combo.findData("title"), 0)
+        self.assertEqual(page.slot_combo.findData("items.0.title"), -1)
+        self.assertGreaterEqual(page.slot_combo.findData("items.0.action"), 0)
 
         page.shape_table.selectRow(0)
         page.item_index_combo.setCurrentIndex(page.item_index_combo.findData(0))
@@ -2113,6 +2206,10 @@ class QtGuiTest(unittest.TestCase):
         page.item_index_combo.setCurrentIndex(page.item_index_combo.findData(2))
         page.slot_combo.setCurrentIndex(page.slot_combo.findData("items.2.stepTitle"))
         page.bind_shape_button.click()
+        page.item_capacity_spin.setValue(1)
+        self.assertEqual(page.item_capacity_spin.value(), 3)
+        self.assertIn("\uc904\uc77c \uc218 \uc5c6\uc2b5\ub2c8\ub2e4", page.mapping_status.text())
+        self.assertEqual(page._current_bindings[6][0], "items.2.stepTitle")
         page.update_layout_button.click()
 
         profile = page.profile_value()
@@ -2178,7 +2275,7 @@ class QtGuiTest(unittest.TestCase):
         self.assertEqual(len(page.plan_value()["pages"]), 2)
         self.assertEqual(len(page.plan_value()["pages"][0]["blocks"]), 2)
 
-    def test_presentation_step_number_formatter_is_editable_and_repeated(self) -> None:
+    def test_presentation_number_formatters_are_editable_and_field_scoped(self) -> None:
         page = PresentationsPage()
         page.set_project_open(True)
         page.set_analysis(
@@ -2195,6 +2292,7 @@ class QtGuiTest(unittest.TestCase):
                         "shapes": [
                             {"id": 2, "name": "Step one", "kind": "text", "text": "1"},
                             {"id": 4, "name": "Step two", "kind": "text", "text": "2"},
+                            {"id": 6, "name": "Finding number", "kind": "text", "text": "1"},
                         ],
                     }
                 ],
@@ -2222,10 +2320,9 @@ class QtGuiTest(unittest.TestCase):
         page.slot_combo.setCurrentIndex(
             page.slot_combo.findData("items.0.stepNumber")
         )
-        self.assertFalse(page.sequence_format_combo.isHidden())
-        page.sequence_format_combo.setCurrentIndex(
-            page.sequence_format_combo.findData("step-padded")
-        )
+        self.assertTrue(page.sequence_format_combo.isHidden())
+        self.assertFalse(page.sequence_custom_edit.isHidden())
+        page.sequence_custom_edit.setText("STEP {number:02}")
         self.assertIn("STEP 01", page.sequence_preview.text())
         page.bind_shape_button.click()
 
@@ -2234,7 +2331,14 @@ class QtGuiTest(unittest.TestCase):
         page.slot_combo.setCurrentIndex(
             page.slot_combo.findData("items.1.stepNumber")
         )
-        self.assertEqual(page.sequence_format_combo.currentData(), "step-padded")
+        self.assertEqual(page.sequence_custom_edit.text(), "STEP {number:02}")
+        page.bind_shape_button.click()
+        page.shape_table.selectRow(2)
+        page.slot_combo.setCurrentIndex(page.slot_combo.findData("findingNumber"))
+        self.assertEqual(page.sequence_format_label.text(), "취약점 순번 형식")
+        self.assertEqual(page.sequence_custom_edit.text(), "{number}")
+        page.sequence_custom_edit.setText("취약점-{number:02}")
+        self.assertIn("취약점-01", page.sequence_preview.text())
         page.bind_shape_button.click()
         page.update_layout_button.click()
 
@@ -2247,14 +2351,100 @@ class QtGuiTest(unittest.TestCase):
             bindings["items.0.stepNumber"]["formatter"]["padding"], 2
         )
 
-        page.sequence_format_combo.setCurrentIndex(
-            page.sequence_format_combo.findData("custom")
-        )
         page.sequence_custom_edit.setText("STEP {value}")
         self.assertFalse(page.bind_shape_button.isEnabled())
-        page.sequence_custom_edit.setText("절차 {number}")
+        page.sequence_custom_edit.setText("취약점 {number}")
+        self.assertEqual(
+            bindings["findingNumber"]["formatter"]["prefix"],
+            "취약점-",
+        )
+        self.assertEqual(
+            bindings["items.0.stepNumber"]["formatter"]["prefix"],
+            "STEP ",
+        )
         self.assertTrue(page.bind_shape_button.isEnabled())
-        self.assertIn("절차 1", page.sequence_preview.text())
+        self.assertIn("취약점 1", page.sequence_preview.text())
+
+    def test_presentation_slide_navigation_preserves_and_saves_all_drafts(self) -> None:
+        page = PresentationsPage(mode="studio")
+        page.set_analysis(
+            {
+                "template": {
+                    "slideCount": 2,
+                    "slideSize": {"cx": 100, "cy": 50},
+                    "sha256": "c" * 64,
+                },
+                "warnings": [],
+                "slides": [
+                    {
+                        "number": 1,
+                        "shapes": [
+                            {"id": 1, "name": "Action", "kind": "text", "text": "Action"}
+                        ],
+                    },
+                    {
+                        "number": 2,
+                        "shapes": [
+                            {"id": 1, "name": "Title", "kind": "text", "text": "Title"}
+                        ],
+                    },
+                ],
+            }
+        )
+        page.set_profile(
+            {
+                "formatVersion": 4,
+                "id": "drafts",
+                "name": "Drafts",
+                "templateHash": "c" * 64,
+                "families": [],
+                "storyRecipe": {"document": [], "finding": [], "appendix": []},
+                "layouts": [],
+            }
+        )
+        page.role_combo.setCurrentIndex(
+            page.role_combo.findData("finding-procedure")
+        )
+        page.shape_table.selectRow(0)
+        page.slot_combo.setCurrentIndex(
+            page.slot_combo.findData("items.0.action")
+        )
+        page.bind_shape_button.click()
+
+        page.slide_combo.setCurrentIndex(page.slide_combo.findData(2))
+        self.assertEqual(page._current_bindings, {})
+        page.shape_table.selectRow(0)
+        page.slot_combo.setCurrentIndex(
+            page.slot_combo.findData("items.0.stepTitle")
+        )
+        page.bind_shape_button.click()
+
+        page.slide_combo.setCurrentIndex(page.slide_combo.findData(1))
+        self.assertEqual(page._current_bindings[1][0], "items.0.action")
+        page.slide_combo.setCurrentIndex(page.slide_combo.findData(2))
+        self.assertEqual(page._current_bindings[1][0], "items.0.stepTitle")
+
+        saved: list[dict[str, object]] = []
+        page.save_profile_requested.connect(
+            lambda value, _path: saved.append(value)
+        )
+        page._save_profile()
+        self.assertEqual(len(saved), 1)
+        layouts = saved[0]["layouts"]
+        self.assertEqual(
+            {layout["sourceSlide"] for layout in layouts},
+            {1, 2},
+        )
+        by_slide = {layout["sourceSlide"]: layout for layout in layouts}
+        self.assertIn("items.0.action", by_slide[1]["bindings"])
+        self.assertIn("items.0.stepTitle", by_slide[2]["bindings"])
+
+        context = page.mapping_editor_context()
+        page.set_profile(saved[0])
+        page.restore_mapping_editor_context(context)
+        self.assertEqual(page.slide_combo.currentData(), 2)
+        self.assertEqual(page._selected_shape_id_value(), 1)
+        self.assertEqual(page._current_bindings[1][0], "items.0.stepTitle")
 
     def test_presentation_scope_and_evidence_slot_labels_are_explicit(self) -> None:
         self.controller.create_target(
@@ -2267,8 +2457,16 @@ class QtGuiTest(unittest.TestCase):
         snapshot = self.controller.snapshot()
         page = PresentationsPage(mode="output")
         page.set_project_open(True)
-        page.set_project_data(snapshot, {})
+        finding_id = snapshot.findings[0].id
+        page.set_project_data(
+            snapshot,
+            {finding_id: 2},
+            {finding_id: {"registered": 3, "linked": 2}},
+        )
         self.assertIn("대상 2개", page.scope_summary.text())
+        self.assertIn("\uc99d\uc801 \ub4f1\ub85d 3\uac1c", page.scope_summary.text())
+        self.assertIn("\uc0b0\ucd9c\uc6a9 2\uac1c", page.scope_summary.text())
+        self.assertIn("\uc81c\uc678 1\uac1c", page.scope_summary.text())
         self.assertEqual(page.scope_mode_label.text(), "전체 대상 2개 포함")
         self.assertEqual(page.scope_select_button.text(), "대상 변경")
         self.assertFalse(hasattr(page, "scope_combo"))
@@ -2288,11 +2486,19 @@ class QtGuiTest(unittest.TestCase):
         )
         self.assertEqual(
             studio._slot_label("items.0.evidence.0"),
-            "콘텐츠 1 · 증적 이미지 1",
+            "콘텐츠 1 · 증적 · 증적 이미지 1",
         )
         self.assertEqual(
             studio._slot_label("items.1.evidence.3"),
-            "콘텐츠 2 · 증적 이미지 4",
+            "콘텐츠 2 · 증적 · 증적 이미지 4",
+        )
+        self.assertEqual(
+            studio._slot_label("items.0.action"),
+            "콘텐츠 1 · 진단 절차 · 수행 내용",
+        )
+        self.assertEqual(
+            studio._slot_label("items.0.title"),
+            "콘텐츠 1 · 취약점 공통값 · 제목",
         )
 
     def test_management_tables_enable_multi_row_selection(self) -> None:

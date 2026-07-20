@@ -16,7 +16,10 @@ from webpentestkit.presentation_engine import (
     analyze_template,
     build_render_plan,
     format_sequence,
+    format_binding_value,
     normalize_sequence_formatter,
+    sequence_formatter_from_template,
+    sequence_formatter_template,
     reconcile_template_profile,
     render_presentation,
     template_digest,
@@ -232,6 +235,16 @@ class PresentationEngineTest(unittest.TestCase):
             )
             self.assertEqual(published["version"], 2)
             self.assertEqual(published["versionCount"], 2)
+            latest_from_old_paths = library.find_by_paths(
+                registered["templatePath"],
+                registered["profilePath"],
+            )
+            self.assertIsNotNone(latest_from_old_paths)
+            self.assertEqual(latest_from_old_paths["id"], registered["id"])
+            self.assertEqual(latest_from_old_paths["version"], 2)
+            self.assertEqual(
+                latest_from_old_paths["profilePath"], published["profilePath"]
+            )
             library.remove(registered["id"])
             self.assertEqual(library.list_entries(), [])
 
@@ -418,6 +431,14 @@ class PresentationEngineTest(unittest.TestCase):
             second["values"]["title"] = "Included page"
             second["included"] = True
             plan["pages"][0]["included"] = False
+            second["blocks"] = [
+                {
+                    "id": "block-1",
+                    "kind": "procedure-step",
+                    "values": {},
+                    "evidence": [{"id": "block-evidence"}],
+                }
+            ]
             plan["pages"].append(second)
             output = root / "included-only.pptx"
             render_presentation(template, profile, plan, output, project_root=root)
@@ -428,6 +449,11 @@ class PresentationEngineTest(unittest.TestCase):
             self.assertEqual(manifest["slideCount"], 1)
             self.assertEqual([page["id"] for page in manifest["pages"]], ["page-0002"])
 
+            self.assertEqual(
+
+                manifest["pages"][0]["evidence"],
+                ["block-evidence"],
+            )
     def test_renderer_drops_source_notes_relationships_from_cloned_slides(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -579,7 +605,7 @@ class PresentationEngineTest(unittest.TestCase):
             validate_profile(value)
         self.assertEqual(error.exception.code, "PRESENTATION_EVIDENCE_SLOTS_NONCONTIGUOUS")
 
-    def test_sequence_formatter_is_safe_and_profile_scoped_to_step_numbers(self) -> None:
+    def test_sequence_formatter_is_safe_and_scoped_to_number_fields(self) -> None:
         self.assertEqual(
             format_sequence(
                 3,
@@ -599,6 +625,15 @@ class PresentationEngineTest(unittest.TestCase):
         self.assertEqual(
             format_sequence(3, {"type": "sequence", "style": "hangul"}),
             "다",
+        )
+        direct = sequence_formatter_from_template("STEP {number:02}")
+        self.assertEqual(format_sequence(3, direct), "STEP 03")
+        self.assertEqual(sequence_formatter_template(direct), "STEP {number:02}")
+        self.assertEqual(
+            format_sequence(
+                2, sequence_formatter_from_template("절차 {number:hangul}")
+            ),
+            "절차 나",
         )
         self.assertEqual(
             format_sequence(
@@ -623,6 +658,8 @@ class PresentationEngineTest(unittest.TestCase):
             token_error.exception.code,
             "PRESENTATION_SEQUENCE_TEMPLATE_INVALID",
         )
+        with self.assertRaises(KitError):
+            sequence_formatter_from_template("STEP {value}")
 
         profile = {
             "formatVersion": PROFILE_FORMAT_VERSION,
@@ -656,7 +693,30 @@ class PresentationEngineTest(unittest.TestCase):
                             },
                         }
                     },
-                }
+                },
+                {
+                    "id": "result",
+                    "familyId": "procedure",
+                    "role": "finding-result",
+                    "sourceSlide": 1,
+                    "variant": {
+                        "kind": "primary",
+                        "priority": 0,
+                        "conditions": {},
+                    },
+                    "bindings": {
+                        "findingNumber": {
+                            "kind": "text",
+                            "shapeId": 2,
+                            "formatter": {
+                                "type": "sequence",
+                                "style": "decimal",
+                                "padding": 2,
+                                "prefix": "취약점-",
+                            },
+                        }
+                    },
+                },
             ],
         }
         validated = validate_profile(profile)
@@ -667,6 +727,13 @@ class PresentationEngineTest(unittest.TestCase):
             "STEP ",
         )
         invalid_slot = deepcopy(profile)
+        finding_number_binding = validated["layouts"][1]["bindings"][
+            "findingNumber"
+        ]
+        self.assertEqual(
+            format_binding_value("findingNumber", 3, finding_number_binding),
+            "취약점-03",
+        )
         invalid_slot["layouts"][0]["bindings"] = {
             "items.0.stepTitle": {
                 "kind": "text",
@@ -723,6 +790,88 @@ class PresentationEngineTest(unittest.TestCase):
             ["finding-overview", "finding-procedure", "finding-retest"],
         )
 
+
+    def test_renderer_applies_finding_number_formatter(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            template = root / "template.pptx"
+            create_template(template)
+            profile = {
+                "formatVersion": PROFILE_FORMAT_VERSION,
+                "id": "finding-number",
+                "name": "Finding number",
+                "templateHash": template_digest(template),
+                "families": [{"id": "result", "name": "Result"}],
+                "storyRecipe": {
+                    "document": [],
+                    "finding": [
+                        {
+                            "id": "result",
+                            "role": "finding-result",
+                            "repeat": "once",
+                            "when": "has-data",
+                        }
+                    ],
+                    "appendix": [],
+                },
+                "layouts": [
+                    {
+                        "id": "result",
+                        "familyId": "result",
+                        "role": "finding-result",
+                        "sourceSlide": 1,
+                        "variant": {
+                            "kind": "primary",
+                            "priority": 0,
+                            "conditions": {},
+                        },
+                        "bindings": {
+                            "findingNumber": {
+                                "kind": "text",
+                                "shapeId": 2,
+                                "formatter": sequence_formatter_from_template(
+                                    "취약점-{number:02}"
+                                ),
+                            }
+                        },
+                    }
+                ],
+            }
+            report_ir = {
+                "formatVersion": 2,
+                "project": {},
+                "presentation": {},
+                "summary": {},
+                "targets": [],
+                "assets": [],
+                "findings": [
+                    {
+                        "id": "WEB-01-001",
+                        "findingNumber": 1,
+                        "summary": "Confirmed",
+                        "technical": {},
+                        "procedure": {"steps": []},
+                        "retests": [],
+                    },
+                    {
+                        "id": "WEB-01-002",
+                        "findingNumber": 2,
+                        "summary": "Confirmed again",
+                        "technical": {},
+                        "procedure": {"steps": []},
+                        "retests": [],
+                    }
+                ],
+            }
+            plan = build_render_plan(report_ir, profile)
+            output = root / "formatted.pptx"
+            render_presentation(template, profile, plan, output, project_root=root)
+            with zipfile.ZipFile(output) as archive:
+                first = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+                second = archive.read("ppt/slides/slide2.xml").decode("utf-8")
+            self.assertIn("취약점-01", first)
+            self.assertIn("취약점-02", second)
+
     def test_v4_profile_migrates_to_layout_set_recipe_contract(self) -> None:
         migrated = validate_profile(
             {
@@ -741,8 +890,8 @@ class PresentationEngineTest(unittest.TestCase):
             4,
         )
 
-    def test_story_layout_set_and_numeric_text_capacity_drive_selection(self) -> None:
-        def layout(layout_id: str, family_id: str, maximum: int) -> dict:
+    def test_story_layout_set_controls_selection_without_text_capacity(self) -> None:
+        def layout(layout_id: str, family_id: str) -> dict:
             return {
                 "id": layout_id,
                 "familyId": family_id,
@@ -750,17 +899,10 @@ class PresentationEngineTest(unittest.TestCase):
                 "sourceSlide": 1,
                 "variant": {
                     "kind": "primary",
-                    "textDensity": "regular",
                     "priority": 0,
                     "conditions": {},
                 },
-                "bindings": {
-                    "title": {
-                        "kind": "text",
-                        "shapeId": 2,
-                        "maxChars": maximum,
-                    }
-                },
+                "bindings": {"title": {"kind": "text", "shapeId": 2}},
             }
 
         profile = {
@@ -786,8 +928,8 @@ class PresentationEngineTest(unittest.TestCase):
                 "appendix": [],
             },
             "layouts": [
-                layout("compact-layout", "compact", 5),
-                layout("spacious-layout", "spacious", 80),
+                layout("compact-layout", "compact"),
+                layout("spacious-layout", "spacious"),
             ],
         }
         report_ir = {
@@ -813,7 +955,7 @@ class PresentationEngineTest(unittest.TestCase):
         automatic = deepcopy(profile)
         automatic["storyRecipe"]["finding"][0].pop("familyId")
         capacity_plan = build_render_plan(report_ir, automatic)
-        self.assertEqual(capacity_plan["pages"][0]["layoutId"], "spacious-layout")
+        self.assertEqual(capacity_plan["pages"][0]["layoutId"], "compact-layout")
 
         invalid = deepcopy(profile)
         invalid["storyRecipe"]["finding"][0]["familyId"] = "missing"
@@ -853,8 +995,14 @@ class PresentationEngineTest(unittest.TestCase):
         ) -> dict:
             bindings = {"title": {"kind": "text", "shapeId": 2}}
             if role == "finding-procedure":
-                bindings = {}
-                shape_id = 2
+                bindings = {
+                    "items.0.summary": {
+                        "kind": "text",
+                        "shapeId": 2,
+                        "maxChars": 1,
+                    }
+                }
+                shape_id = 3
                 for item_index in range(item_capacity):
                     bindings[f"items.{item_index}.stepTitle"] = {
                         "kind": "text",
@@ -940,7 +1088,17 @@ class PresentationEngineTest(unittest.TestCase):
                 }
             ],
         }
-        plan = build_render_plan(report_ir, profile)
+        normalized = validate_profile(profile)
+        procedure_layouts = [
+            item for item in normalized["layouts"] if item["role"] == "finding-procedure"
+        ]
+        self.assertTrue(procedure_layouts)
+        for procedure_layout in procedure_layouts:
+            self.assertIn("summary", procedure_layout["bindings"])
+            self.assertNotIn("items.0.summary", procedure_layout["bindings"])
+            self.assertNotIn("maxChars", procedure_layout["bindings"]["summary"])
+            self.assertNotIn("textDensity", procedure_layout["variant"])
+        plan = build_render_plan(report_ir, normalized)
         self.assertEqual(len(plan["pages"]), 6)
         self.assertEqual(
             [page["layoutId"] for page in plan["pages"][:5]],
@@ -1153,7 +1311,10 @@ class PresentationEngineTest(unittest.TestCase):
             [page["selection"]["variantKind"] for page in plan["pages"]],
             ["primary", "continuation", "continuation"],
         )
-        self.assertEqual([len(page["evidence"]) for page in plan["pages"]], [2, 2, 1])
+        self.assertEqual(
+            [len(page["blocks"][0]["evidence"]) for page in plan["pages"]],
+            [2, 2, 1],
+        )
 
     def test_appendix_and_attachment_usage_are_separated(self) -> None:
         profile = {
@@ -1337,12 +1498,18 @@ class PresentationEngineTest(unittest.TestCase):
             service = ProjectService.create_project(root / "project", "DEMO-WEB", "Demo")
             service.create_target("WEB-01", "Portal", "https://example.test")
             finding = service.create_finding(
-                FindingInput(target_id="WEB-01", title="Service finding")
+                FindingInput(
+                    target_id="WEB-01",
+                    title="Service finding",
+                    template_id="W-05",
+                    template_version=1,
+                )
             )
             service.update_finding(
                 finding.id,
                 status="Confirmed",
                 summary="Summary",
+                result_summary="The vulnerable behavior was reproduced and verified.",
                 impact="Impact",
                 remediation="Remediation",
             )
@@ -1363,10 +1530,22 @@ class PresentationEngineTest(unittest.TestCase):
             )
             report_ir = service.build_presentation_ir()
             self.assertEqual(report_ir["formatVersion"], 2)
+            finding_values = report_ir["findings"][0]
+            self.assertEqual(
+                finding_values["resultSummary"],
+                "The vulnerable behavior was reproduced and verified.",
+            )
+            self.assertEqual(finding_values["findingId"], finding.id)
+            self.assertEqual(finding_values["findingNumber"], 1)
+            self.assertEqual(finding_values["findingCode"], "W-05")
             self.assertEqual(report_ir["findings"][0]["evidence"][0]["assetId"], "WEB-01-001:EVD-001")
             plan_path = root / "plan.json"
             plan = service.create_presentation_plan(profile_path, plan_path)
             self.assertEqual(len(plan["pages"]), 1)
+            self.assertEqual(
+                plan["pages"][0]["values"]["resultSummary"],
+                "The vulnerable behavior was reproduced and verified.",
+            )
             self.assertTrue(
                 service.presentation_plan_status(
                     profile_path, plan_path, template_path=template
@@ -1393,6 +1572,89 @@ class PresentationEngineTest(unittest.TestCase):
                     root / "stale.pptx",
                     plan_path=plan_path,
                 )
+
+    def test_plan_merge_resets_order_only_when_semantic_page_set_changes(self) -> None:
+        def page(key: str, role: str, layout_id: str) -> dict:
+            return {
+                "id": f"page-{key}",
+                "semanticKey": key,
+                "role": role,
+                "layoutId": layout_id,
+                "included": True,
+                "values": {},
+                "evidence": [],
+                "overrides": {},
+            }
+
+        common = {
+            "formatVersion": 2,
+            "templateHash": "a" * 64,
+            "reportIrHash": "b" * 64,
+            "profileHash": "c" * 64,
+            "warnings": [],
+            "attachments": [],
+        }
+        profile = {
+            "layouts": [
+                {"id": "procedure", "role": "finding-procedure"},
+                {"id": "result", "role": "finding-result"},
+            ]
+        }
+        generated = {
+            **common,
+            "pages": [
+                page("finding:1:procedure:new-group", "finding-procedure", "procedure"),
+                page("finding:1:result", "finding-result", "result"),
+            ],
+        }
+        previous = {
+            **common,
+            "pages": [
+                {
+                    **page("finding:1:result", "finding-result", "result"),
+                    "included": False,
+                    "overrides": {"evidence.0": {"fit": "contain"}},
+                },
+                page("finding:1:procedure:old-step", "finding-procedure", "procedure"),
+            ],
+        }
+        merged = ProjectService._merge_presentation_plan(
+            previous,
+            deepcopy(generated),
+            profile,
+        )
+        self.assertEqual(
+            [item["semanticKey"] for item in merged["pages"]],
+            ["finding:1:procedure:new-group", "finding:1:result"],
+        )
+        self.assertFalse(merged["pages"][1]["included"])
+        self.assertEqual(
+            merged["pages"][1]["overrides"], {"evidence.0": {"fit": "contain"}}
+        )
+
+        same_pages = {
+            **common,
+            "pages": [
+                {
+                    **page("finding:1:result", "finding-result", "result"),
+                    "included": False,
+                },
+                page(
+                    "finding:1:procedure:new-group",
+                    "finding-procedure",
+                    "procedure",
+                ),
+            ],
+        }
+        preserved = ProjectService._merge_presentation_plan(
+            same_pages,
+            deepcopy(generated),
+            profile,
+        )
+        self.assertEqual(
+            [item["semanticKey"] for item in preserved["pages"]],
+            ["finding:1:result", "finding:1:procedure:new-group"],
+        )
 
     def test_project_service_scopes_plan_and_render_to_selected_targets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

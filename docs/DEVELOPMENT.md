@@ -69,12 +69,12 @@ Recipe는 고정 역할을 순서화하고 선택적 `familyId`로 Planner 후�
 의미 역할을 증적 페이지 수와 결합하지 말고,
 기본/연속 분할은 Variant로 표현합니다. 다중 절차 페이지는
 `composition.itemCapacity`와 연속된 `items.N.*` 슬롯으로 표현하고, Plan v2의
-`blocks` 순서는 원본 절차 순서를 유지해야 합니다. 일반 역할의 레이아웃 선택은
-모호한 짧음/보통/김 UI가 아니라 바인딩별 `maxChars`와 실제 문자열 길이로 판단합니다.
-`stepNumber` 텍스트 바인딩은 선택적 `formatter` 객체를 가질 수 있습니다. 포맷터는
+`blocks` 순서는 원본 절차 순서를 유지해야 합니다. 레이아웃 선택은 역할·페이지 유형·
+증적 수·절차 영역 수로 판단하며, 텍스트는 템플릿 도형의 PowerPoint 자동 맞춤으로 렌더링합니다.
+`findingNumber`와 `stepNumber` 텍스트 바인딩은 각각 독립적인 선택적 `formatter` 객체를 가질 수 있습니다. 포맷터는
 `presentation_engine/formatters.py`에서 검증·변환하며 임의 코드 실행 없이 선언된
 sequence 스타일과 단일 `{number}` 토큰만 허용합니다. Planner와 Renderer는 같은
-변환 함수를 사용해야 하므로 수용량 판단과 실제 출력 문자열이 달라지지 않습니다.
+변환 함수를 사용해 계획과 실제 출력의 취약점·단계 번호가 일치해야 합니다.
 계약을 바꿀 때는
 `schemas/presentation-profile.schema.json`, 한국어·영어 역할 및 슬롯 표시명,
 마이그레이션 테스트를 함께 갱신해야 합니다. Profile v1/v2/v3/v4 입력은 로드 시 v5로

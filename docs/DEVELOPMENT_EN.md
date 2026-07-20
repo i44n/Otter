@@ -84,12 +84,13 @@ fixed roles and its optional `familyId` limits the planner's candidate set. Keep
 semantic roles independent from evidence pagination; express
 primary and continuation pages as variants. Multi-procedure layouts use
 `composition.itemCapacity` and contiguous `items.N.*` slots; Plan v2 `blocks`
-must preserve source procedure order. For ordinary roles, layout selection uses
-per-binding `maxChars` and actual string lengths rather than a vague short/regular/long
-UI. A `stepNumber` text binding may carry an optional `formatter` object.
+must preserve source procedure order. Layout selection uses role, page type,
+evidence count, and procedure-region count; text is rendered into the template
+shape with PowerPoint autofit. The `findingNumber` and `stepNumber` text
+bindings may each carry an independent optional `formatter` object.
 `presentation_engine/formatters.py` validates and renders only declared sequence
 styles and one literal `{number}` token; it never evaluates user code. Planner and
-Renderer must call the same formatter so capacity checks match rendered text.
+Renderer must call the same formatter so planned and rendered finding and step labels match.
 Contract changes must update
 `schemas/presentation-profile.schema.json`, Korean and English labels, and
 migration tests together. Profile v1/v2/v3/v4 inputs are upgraded at load time and

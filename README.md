@@ -184,8 +184,10 @@ PPT Studio exposes only reserved roles and semantic slots, derives binding
 types automatically, previews slide geometry, and stores reusable profiles in an
 application-level linked-template library. Profile format v5 supports one to
 twelve procedure content regions and optional story-level layout-set selection.
-Text capacity is estimated numerically per mapped shape and checked against the
-actual slot text. Page types describe primary/continuation/static pages and
+Layout selection uses the role, page type, evidence capacity, and procedure
+region count. Text is rendered into the template's text boxes with PowerPoint
+autofit instead of a manual character limit. Page types describe
+primary/continuation/static pages and
 evidence capacity; Story flow orders fixed roles. Profile v1/v2/v3/v4 files are migrated and unsupported legacy
 mappings are quarantined for review.
 
